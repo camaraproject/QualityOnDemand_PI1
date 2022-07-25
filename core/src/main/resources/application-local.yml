@@ -1,0 +1,9 @@
+scef:
+  server:
+    apiroot: http://localhost:8081
+    scsasid: scs
+  debug: true
+
+qod:
+  bookkeeper:
+    url: http://localhost:8082/bookkeeper
