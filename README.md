@@ -42,7 +42,10 @@ Start the qod-api service from terminal or from an IDE or with docker
 
 The configuration can be adapted here: core/src/main/resources/application.yml
 
-The following environment variables should be used to configure the application properly:
+The below table lists the environment variables that are used to configure the application properly. This reference
+implementation for the QoD API makes use of the AsSessionWithQoS API (https://www.3gpp.org/ftp/Specs/latest/Rel-17)
+which is usually made available as a part of a NEF/SCEF system. All variables in the below table starting with "SCEF"
+can be understood as NEF/SCEF.
 
 | ENV                              | Description                                                                                                               |
 |----------------------------------|---------------------------------------------------------------------------------------------------------------------------|
