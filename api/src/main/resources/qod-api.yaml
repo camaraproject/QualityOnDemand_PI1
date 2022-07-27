@@ -15,10 +15,7 @@ externalDocs:
   description: Product documentation at Camara
   url: https://github.com/camaraproject/
 security:
-  - { }
-  - oAuth2ClientCredentials: [ ]
-  - BasicAuth: [ ]
-  - apiKey: [ ]
+  - oAuth2ClientCredentials: []
 servers:
   - url: '{apiRoot}/{basePath}'
     variables:
@@ -168,7 +165,7 @@ paths:
           description: Successful notification
           content: { }
       security:
-        - apiKey: [ ]
+        - oAuth2ClientCredentials: []
   /check-qos-availability:
     post:
       tags:
@@ -215,18 +212,11 @@ components:
   securitySchemes:
     oAuth2ClientCredentials:
       type: oauth2
+      description: This API uses OAuth 2 with the client credentials grant flow.
       flows:
         clientCredentials:
           tokenUrl: '{tokenUrl}'
           scopes: { }
-    BasicAuth:
-      type: http
-      scheme: basic
-    apiKey:
-      type: apiKey
-      description: API key to authorize requests
-      name: apikey
-      in: query
   schemas:
     SessionId:
       type: string
