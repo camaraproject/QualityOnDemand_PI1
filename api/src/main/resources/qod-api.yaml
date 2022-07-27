@@ -165,7 +165,7 @@ paths:
           description: Successful notification
           content: { }
       security:
-        - oAuth2ClientCredentials: []
+        - apiKey: [ ]
   /check-qos-availability:
     post:
       tags:
@@ -217,6 +217,11 @@ components:
         clientCredentials:
           tokenUrl: '{tokenUrl}'
           scopes: { }
+    apiKey:
+      type: apiKey
+      description: API key to authorize requests
+      name: apikey
+      in: query
   schemas:
     SessionId:
       type: string
