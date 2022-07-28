@@ -65,6 +65,17 @@ can be understood as NEF/SCEF.
 | MASK-SENSIBLE-DATA               | If set to true, sensible data is masked in response body                                                                  |
 | ALLOW-MULTIPLE-UEADDR            | If set to true, network segments are allowed for ueAddr                                                                   |
 
+## Validations
+
+The QoD reference implementation has been qualified against the following network service vendors:
+
+| System Name        | Vendor       | Camara Testing Member  | Qualified  |
+|--------------------|--------------|------------------------|------------|
+| 5G-NEF OpenLab     | Nokia        | DT                     | Yes        |
+| 5G-NEF             | Ericsson     | DT                     | Yes        |
+
+We actively ask other Camara members to validate this implementation against their available backend network services and
+share the results with the community.
 
 ## Contribution
 
