@@ -120,14 +120,18 @@
             <version>20220320</version>
         </dependency>
         <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-openfeign</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.github.openfeign</groupId>
-            <artifactId>feign-httpclient</artifactId>
+            <groupId>com.qod</groupId>
+            <artifactId>bookkeeper-lib</artifactId>
+            <version>latest</version>
         </dependency>
     </dependencies>
+
+    <repositories>
+        <repository>
+            <id>gitlab-maven</id>
+            <url>https://gitlab.devops.telekom.de/api/v4/projects/114205/packages/maven</url>
+        </repository>
+    </repositories>
 
     <build>
         <plugins>

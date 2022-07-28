@@ -39,6 +39,8 @@ import com.camara.scef.api.model.AsSessionWithQoSSubscription;
 import com.camara.scef.api.model.FlowInfo;
 import com.camara.scef.api.model.UserPlaneEvent;
 import com.camara.scef.api.model.UserPlaneNotificationData;
+import com.qod.model.BookkeeperCreateSession;
+import com.qod.service.BookkeeperService;
 import inet.ipaddr.IPAddressString;
 import java.time.Instant;
 import java.util.*;
@@ -304,13 +306,27 @@ public class QodServiceImpl implements QodService {
   private UUID createBooking(UUID uuid, long now, long expiresAt, CreateSession session) {
     Boolean bookkeeperResult;
 
+    //TEMP SOLUTION
+    BookkeeperCreateSession bookkprSession = BookkeeperCreateSession.builder()
+            .duration(session.getDuration())
+            .ueAddr(session.getUeAddr())
+            .asAddr(session.getAsAddr())
+            .uePorts(session.getUePorts())
+            .asPorts(session.getAsPorts())
+            .protocolIn(com.qod.model.Protocol.fromValue(session.getProtocolIn().toString()))
+            .protocolOut(com.qod.model.Protocol.fromValue(session.getProtocolOut().toString()))
+            .qos(com.qod.model.QosProfile.fromValue(session.getQos().toString()))
+            .notificationUri(session.getNotificationUri())
+            .notificationAuthToken(session.getNotificationAuthToken())
+            .build();
+
     try {
       bookkeeperResult =
           this.bookkeeperService.checkBookingAvailability(
               uuid,
               Date.from(Instant.ofEpochSecond(now)),
               Date.from(Instant.ofEpochSecond(expiresAt)),
-              session);
+              bookkprSession);
     } catch (Exception e) {
       throw new SessionApiException(HttpStatus.SERVICE_UNAVAILABLE, "The service is currently not available");
     }
@@ -324,7 +340,7 @@ public class QodServiceImpl implements QodService {
         uuid,
         Date.from(Instant.ofEpochSecond(now)),
         Date.from(Instant.ofEpochSecond(expiresAt)),
-        session);
+        bookkprSession);
   }
 
   /**
