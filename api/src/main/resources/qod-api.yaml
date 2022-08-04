@@ -289,8 +289,6 @@ components:
       required:
         - ueAddr
         - asAddr
-        - protocolIn
-        - protocolOut
         - qos
     Ipv4Addr:
       type: string
@@ -313,6 +311,7 @@ components:
         - TCP
         - UDP
         - ANY
+      default: ANY
       description: |
         * `TCP` - Qualifier for TCP protocol
         * `UDP` - Qualifier for UDP protocol
