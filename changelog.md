@@ -1,6 +1,6 @@
 # ChangeLog QoD-API
 
-## Release 0.2.0 (IN PROGRESS)
+## Release 0.1.1 (IN PROGRESS, NOT RELEASED SO FAR)
 
 ### Features
 
