@@ -1,5 +1,13 @@
 # ChangeLog QoD-API
 
+## Release 0.2.0 (IN PROGRESS)
+
+### Features
+
+##### /sessions
+
+    - parameters protocolIn and protocolOut are optional, default value is ANY
+
 ## Release 0.1.0 (25.07.2022)
 
 This is the initial, non-productive release for the Camara project.
