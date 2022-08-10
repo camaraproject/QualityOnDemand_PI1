@@ -46,6 +46,8 @@ import java.time.Instant;
 import java.util.*;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import javax.websocket.Session;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -117,6 +119,7 @@ public class QodServiceImpl implements QodService {
   public SessionInfo createSession(@NotNull CreateSession session) {
     QosProfile qosProfile = session.getQos();
     final int flowId = getFlowId(qosProfile);
+    List<Message> messages = new ArrayList<Message>();
 
     // if multiple ueAddr are not allowed and specified ueAddr is a network segment, return error
     if (!qodConfig.getQosAllowMultipleUeAddr()
@@ -152,12 +155,15 @@ public class QodServiceImpl implements QodService {
     }
 
     // Check if asAddr is could be in private network
-    // TODO: create warning in response
     for (String privateNetwork : PRIVATE_NETWORKS) {
       IPAddressString pn = new IPAddressString(privateNetwork);
       if (pn.contains(new IPAddressString(session.getAsAddr()))) {
-        // TODO: Put this message into response
-        log.warn("Creating a session for AS in private network " + privateNetwork);
+        Message warning = new Message();
+        String description = String.format("AS address range is in private network (%s). Some features may not work properly.", privateNetwork);
+        warning.setSeverity(Message.SeverityEnum.WARNING);
+        warning.setDescription(description);
+        messages.add(warning);
+        log.warn(description);
         break;
       }
     }
@@ -211,7 +217,11 @@ public class QodServiceImpl implements QodService {
         saveSession(
             now, expiresAt, duration, uuid, session, qosProfile, subscriptionId, bookkeeperId);
 
-    return modelMapper.map(qosSession);
+    SessionInfo ret = modelMapper.map(qosSession);
+
+    // Messages are only present in response but not in repository
+    ret.setMessages(messages);
+    return ret;
   }
 
   @Override

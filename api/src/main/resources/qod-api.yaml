@@ -249,6 +249,10 @@ components:
           example: 1639566000
           description: Timestamp of session expiration if the session was not deleted, in seconds since unix epoch
           format: int64
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
       description: Session related information.
     CreateSession:
       description: Data type with attributes required for creating a session
@@ -378,4 +382,16 @@ components:
       pattern: '^[a-zA-Z0-9_%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
       example: '123456789@domain.com'
       description: UE identifier in email format
-
+    Message:
+      type: object
+      properties:
+        severity:
+          type: string
+          enum: [ "INFO", "WARNING" ]
+          description: Message severity
+        description:
+          type: string
+          description: Detailed message text
+      required:
+        - severity
+        - description
