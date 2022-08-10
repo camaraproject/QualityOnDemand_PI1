@@ -22,16 +22,13 @@
 
 package com.camara.qod.controller;
 
+import com.camara.qod.api.model.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import com.camara.scef.api.model.AsSessionWithQoSSubscription;
 import com.camara.scef.api.model.UserPlaneNotificationData;
 import com.camara.qod.api.SessionsApiDelegate;
-import com.camara.qod.api.model.CreateSession;
-import com.camara.qod.api.model.Protocol;
-import com.camara.qod.api.model.QosProfile;
-import com.camara.qod.api.model.SessionInfo;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -247,6 +244,30 @@ class SessionsApiDelegateImplTest {
     sessionFound(sessionId);
     Thread.sleep(defaultDuration * 1000 + 1);
     sessionNotFound(sessionId);
+  }
+
+  /**
+   * If AS intersects with any private networks (172..., 192..., 10... ) new session should be created with warning
+   */
+  @Test
+  void createSessionWithWarning() throws JsonProcessingException {
+    stubForCreateSubscription();
+    stubForDeleteSubscription();
+    stubForBookkeeperAvailabilityRequest(true);
+    stubForBookkeeperBookingRequest();
+    stubForBookkeeperDeleteBookingRequest();
+    ResponseEntity<SessionInfo> response = api.createSession(session(QosProfile.LOW_LATENCY, "10.1.0.0/24"));
+    if (bookkeeperEnabled) {
+      verify(postRequestedFor(urlPathEqualTo("/checkServiceQualification")));
+      verify(postRequestedFor(urlPathEqualTo("/service")));
+    } else {
+      verify(0, postRequestedFor(urlPathEqualTo("/checkServiceQualification")));
+      verify(0, postRequestedFor(urlPathEqualTo("/service")));
+    }
+    assertNotNull(response);
+    assertEquals(HttpStatus.CREATED, response.getStatusCode());
+    assertNotNull(response.getBody().getMessages().get(0));
+    assertTrue(response.getBody().getMessages().get(0).getSeverity() == Message.SeverityEnum.WARNING);
   }
 
   private UUID createSession(CreateSession createSession) {
