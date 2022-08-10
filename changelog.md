@@ -1,12 +1,16 @@
 # ChangeLog QoD-API
 
-## Release 0.1.1 (IN PROGRESS, NOT RELEASED SO FAR)
+## Next Release x.x.x (IN PROGRESS, NOT RELEASED SO FAR)
 
 ### Features
 
 ##### /sessions
 
     - parameters protocolIn and protocolOut are optional, default value is ANY
+
+### Bugfixes
+    
+    - session validation for protocol overlap
 
 ## Release 0.1.0 (25.07.2022)
 

@@ -441,8 +441,7 @@ public class QodServiceImpl implements QodService {
                     asPorts == null ? "0-65535" : asPorts,
                     qosSession.getAsPorts() == null ? "0-65535" : qosSession.getAsPorts()))
         .filter(qosSession -> checkProtocolIntersection(inProtocol, qosSession.getProtocolIn()))
-        .filter(
-            qosSession -> checkProtocolIntersection(outProtocol, qosSession.getProtocolOut()))
+        .filter(qosSession -> checkProtocolIntersection(outProtocol, qosSession.getProtocolOut()))
         .findFirst();
   }
 
@@ -575,14 +574,12 @@ public class QodServiceImpl implements QodService {
   /**
    * Check if the given protocols intersect.
    *
-   * @param protocol1 protocol name (e.g. UDP/TCP) or null (ANY)
-   * @param protocol2 protocol name (e.g. UDP/TCP) or null (ANY)
+   * @param protocol1 protocol name (e.g. UDP/TCP/ANY)
+   * @param protocol2 protocol name (e.g. UDP/TCP/ANY)
    * @return true for intersecting protocols, false otherwise
    */
   private static boolean checkProtocolIntersection(Protocol protocol1, Protocol protocol2) {
-    if (protocol1 == null && protocol2 == null) {
-      return true;
-    } else if (protocol1 == null || protocol2 == null) {
+    if (protocol1 == Protocol.ANY || protocol2 == Protocol.ANY) {
       return true;
     } else {
       return protocol1.equals(protocol2);
