@@ -123,7 +123,7 @@
         <dependency>
             <groupId>com.qod</groupId>
             <artifactId>bookkeeper-lib</artifactId>
-            <version>latest</version>
+            <version>0.0.1</version>
         </dependency>
     </dependencies>
 

@@ -23,6 +23,7 @@
 package com.camara.qod.controller;
 
 import com.camara.qod.api.model.*;
+import com.camara.qod.config.QodConfig;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
@@ -53,26 +54,76 @@ import static org.junit.jupiter.api.Assertions.*;
 @WireMockTest(httpPort = 9000)
 class SessionsApiDelegateImplTest {
   private final String asId;
-
   private final SessionsApiDelegate api;
   private final Boolean maskSensibleData;
   private final Integer defaultDuration;
   private final Boolean bookkeeperEnabled;
 
+  private final QodConfig qodConfig;
   @Autowired
   public SessionsApiDelegateImplTest(
       @Value("${scef.server.scsasid}") String asId,
       SessionsApiDelegate api,
       @Value("${qod.mask-sensible-data}") Boolean maskSensibleData,
-      @Value("${qod.bookkeeper.enabled}") Boolean bookkeeperEnabled) {
+      @Value("${qod.bookkeeper.enabled}") Boolean bookkeeperEnabled,
+      QodConfig qodConfig) {
     this.asId = asId;
     this.api = api;
     this.maskSensibleData = maskSensibleData;
     this.defaultDuration = 2;
     this.bookkeeperEnabled = bookkeeperEnabled;
+    this.qodConfig = qodConfig;
 
     MockHttpServletRequest request = new MockHttpServletRequest();
     RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+  }
+  @Test
+  void createAndUpdateDurationOfSession() throws JsonProcessingException {
+    stubForCreateSubscription();
+    stubForBookkeeperAvailabilityRequest(true);
+    stubForBookkeeperBookingRequest();
+    stubForBookkeeperDeleteBookingRequest();
+    stubForDeleteSubscription();
+
+    RenewSession renewSession = new RenewSession().duration(20);
+    UUID sessionId =
+            createSession(
+                    session(QosProfile.LOW_LATENCY,
+                            "200.24.24.0/24",
+                            "5000-5002,6000",
+                            qodConfig.getQosExpirationTimeBeforeHandling() + 100));
+    updateSession(sessionId, renewSession);
+    deleteSession(sessionId);
+  }
+
+  @Test
+  void updateDurationOfSessionWhichExpires() throws JsonProcessingException, InterruptedException {
+    stubForCreateSubscription();
+    stubForBookkeeperAvailabilityRequest(true);
+    stubForBookkeeperBookingRequest();
+    stubForBookkeeperDeleteBookingRequest();
+    stubForDeleteSubscription();
+
+    RenewSession renewSession = new RenewSession().duration(60);
+    UUID sessionId =
+            createSession(
+                    session(QosProfile.LOW_LATENCY,
+                            "200.24.24.0/24",
+                            "5000-5002,6000",
+                            qodConfig.getQosExpirationTimeBeforeHandling()));
+    Thread.sleep(qodConfig.getQosExpirationTimeBeforeHandling() * 500L);
+
+    SessionApiException exception =
+            assertThrows(SessionApiException.class, () -> api.renewSession(sessionId, renewSession));
+    assertTrue(exception.getMessage().contains("will soon expire"));
+    deleteSession(sessionId);
+  }
+
+  @Test
+  void updateUnknownSession() {
+    SessionApiException exception =
+            assertThrows(SessionApiException.class, () -> api.getSession(UUID.randomUUID()));
+    assertTrue(exception.getMessage().contains("not found"));
   }
 
   @Test
@@ -283,6 +334,16 @@ class SessionsApiDelegateImplTest {
     assertEquals(HttpStatus.CREATED, response.getStatusCode());
     assertNotNull(response.getBody());
     return response.getBody().getId();
+  }
+
+  private void updateSession(UUID sessionId, RenewSession renewSession) {
+    ResponseEntity<SessionInfo> patchedResponse = api.renewSession(sessionId, renewSession);
+    assertNotNull(patchedResponse);
+    assertEquals(HttpStatus.OK, patchedResponse.getStatusCode());
+    ResponseEntity<SessionInfo> response = api.getSession(sessionId);
+    sessionFound(sessionId);
+    assertEquals(response.getBody().getStartedAt() + renewSession.getDuration(),
+            patchedResponse.getBody().getExpiresAt());
   }
 
   private void sessionFound(UUID sessionId) {

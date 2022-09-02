@@ -22,14 +22,18 @@
 
 package com.camara.qod.mapping;
 
+import com.camara.qod.api.model.CreateSession;
 import com.camara.qod.api.model.SessionInfo;
 import com.camara.qod.model.QosSession;
+import com.qod.model.BookkeeperCreateSession;
 import org.mapstruct.Mapper;
 
 /**
- * Maps the QoSSessions model to the SessionsInfo model.
+ * Maps the QoSSessions model to the SessionsInfo model,
+ * CreateSession model to the BookkeeperCreateSession model
  */
 @Mapper(componentModel = "spring")
 public interface ModelMapper {
   SessionInfo map(QosSession qosSession);
+  BookkeeperCreateSession map(CreateSession createSession);
 }

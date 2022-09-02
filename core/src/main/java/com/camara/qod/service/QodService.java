@@ -22,10 +22,7 @@
 
 package com.camara.qod.service;
 
-import com.camara.qod.api.model.CheckQosAvailabilityResponse;
-import com.camara.qod.api.model.CreateSession;
-import com.camara.qod.api.model.SessionEvent;
-import com.camara.qod.api.model.SessionInfo;
+import com.camara.qod.api.model.*;
 import com.camara.scef.api.model.UserPlaneEvent;
 import java.util.UUID;
 import javax.validation.constraints.NotBlank;
@@ -34,6 +31,8 @@ import org.springframework.scheduling.annotation.Async;
 
 /** Service interface, that is used for the implementations of the methods of the sessions' path. */
 public interface QodService {
+
+  SessionInfo renewSession(@NotNull UUID id, @NotNull RenewSession session);
 
   SessionInfo createSession(@NotNull CreateSession session);
 

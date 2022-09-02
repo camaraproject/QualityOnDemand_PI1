@@ -115,6 +115,62 @@ public class QodServiceImpl implements QodService {
     this.deleteApi = new AsSessionWithQoSApiSubscriptionLevelDeleteOperationApi(apiClient);
   }
 
+  /** Update certain attributes only included in UpdateSession class. */
+  @Override
+  public SessionInfo renewSession(UUID id, RenewSession renewSession) {
+    QosSession qosSession =
+        sessionRepo
+            .findById(id)
+            .orElseThrow(
+                () ->
+                    new SessionApiException(
+                        HttpStatus.NOT_FOUND, "QoD session not found for session ID: " + id));
+
+    // Assert that the session is not planned to be deleted
+    if(Instant.ofEpochSecond(qosSession.getExpiresAt() - qodConfig.getQosExpirationTimeBeforeHandling()).compareTo(Instant.now()) < 0){
+      log.debug("The session " + qosSession.getId() + "is planned to be executed, therefore it is not updated");
+      throw new SessionApiException(HttpStatus.CONFLICT, "The session cannot be updated, it will soon expire.");
+    }
+
+    if (renewSession.getDuration() != null) {
+      // Assert that startsAt + duration > now
+      if (Instant.ofEpochSecond(renewSession.getDuration() + qosSession.getStartedAt()).compareTo(Instant.now()) <= 0) {
+        log.debug(
+            "The requested duration would cause the session "
+                + qosSession.getId()
+                + " to expire, therefore it is not updated.");
+        throw new SessionApiException(
+            HttpStatus.CONFLICT,
+            "The requested duration would cause the session "
+                + qosSession.getId()
+                + " to expire, please delete the session if it is not needed anymore.");
+      }
+
+      Boolean updateResult =
+          bookkeeperService.changeBookingTime(
+              id,
+              Date.from(
+                  Instant.ofEpochSecond(
+                          qosSession.getStartedAt() + renewSession.getDuration())));
+      if (!updateResult) {
+        throw new SessionApiException(
+            HttpStatus.CONFLICT, "Requested QoS session is currently not available");
+      }
+
+      qosSession.setDuration(renewSession.getDuration());
+      qosSession.setExpiresAt(qosSession.getStartedAt() + renewSession.getDuration());
+
+      sessionRepo.save(qosSession);
+      redisTemplate
+              .opsForZSet()
+              .add(
+                      redisConfig.getQosSessionExpirationListName(),
+                      qosSession.getId().toString(),
+                      qosSession.getExpiresAt());
+    }
+    return modelMapper.map(qosSession);
+  }
+
   @Override
   public SessionInfo createSession(@NotNull CreateSession session) {
     QosProfile qosProfile = session.getQos();
@@ -250,14 +306,15 @@ public class QodServiceImpl implements QodService {
       try {
         bookkeeperService.deleteBooking(qosSession.getBookkeeperId());
       } catch (Exception e) {
-        throw new SessionApiException(HttpStatus.SERVICE_UNAVAILABLE, "The service is currently not available");
+        throw new SessionApiException(
+            HttpStatus.SERVICE_UNAVAILABLE, "The service is currently not available");
       }
     }
 
     sessionRepo.deleteById(sessionId);
     redisTemplate
-            .opsForZSet()
-            .remove(redisConfig.getQosSessionExpirationListName(), sessionId.toString());
+        .opsForZSet()
+        .remove(redisConfig.getQosSessionExpirationListName(), sessionId.toString());
 
     if (qosSession.getSubscriptionId() != null) {
       ResponseEntity<UserPlaneNotificationData> response =
@@ -316,19 +373,8 @@ public class QodServiceImpl implements QodService {
   private UUID createBooking(UUID uuid, long now, long expiresAt, CreateSession session) {
     Boolean bookkeeperResult;
 
-    //TEMP SOLUTION
-    BookkeeperCreateSession bookkprSession = BookkeeperCreateSession.builder()
-            .duration(session.getDuration())
-            .ueAddr(session.getUeAddr())
-            .asAddr(session.getAsAddr())
-            .uePorts(session.getUePorts())
-            .asPorts(session.getAsPorts())
-            .protocolIn(com.qod.model.Protocol.fromValue(session.getProtocolIn().toString()))
-            .protocolOut(com.qod.model.Protocol.fromValue(session.getProtocolOut().toString()))
-            .qos(com.qod.model.QosProfile.fromValue(session.getQos().toString()))
-            .notificationUri(session.getNotificationUri())
-            .notificationAuthToken(session.getNotificationAuthToken())
-            .build();
+    // TEMP SOLUTION
+    BookkeeperCreateSession bookkprSession = modelMapper.map(session);
 
     try {
       bookkeeperResult =
@@ -338,7 +384,8 @@ public class QodServiceImpl implements QodService {
               Date.from(Instant.ofEpochSecond(expiresAt)),
               bookkprSession);
     } catch (Exception e) {
-      throw new SessionApiException(HttpStatus.SERVICE_UNAVAILABLE, "The service is currently not available");
+      throw new SessionApiException(
+          HttpStatus.SERVICE_UNAVAILABLE, "The service is currently not available");
     }
 
     if (!bookkeeperResult) {

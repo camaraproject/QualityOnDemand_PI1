@@ -8,6 +8,7 @@
 
     - Parameters protocolIn and protocolOut are optional, default value is ANY
     - When creating new session the response can have an array of messages which contain information / warnings
+    - Change duration of an existing qod session
 
 ### Bugfixes
     

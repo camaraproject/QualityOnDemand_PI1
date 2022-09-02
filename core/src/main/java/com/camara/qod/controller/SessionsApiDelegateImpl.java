@@ -24,6 +24,7 @@ package com.camara.qod.controller;
 
 import com.camara.qod.api.SessionsApiDelegate;
 import com.camara.qod.api.model.CreateSession;
+import com.camara.qod.api.model.RenewSession;
 import com.camara.qod.api.model.SessionInfo;
 import com.camara.qod.service.QodService;
 import inet.ipaddr.IPAddress;
@@ -77,6 +78,12 @@ public class SessionsApiDelegateImpl implements SessionsApiDelegate {
   @Override
   public ResponseEntity<SessionInfo> getSession(UUID sessionId) {
     SessionInfo sessionInfo = qodService.getSession(sessionId);
+    return ResponseEntity.status(HttpStatus.OK).body(sessionInfo);
+  }
+
+  @Override
+  public ResponseEntity<SessionInfo> renewSession(UUID sessionId, RenewSession renewSession) {
+    SessionInfo sessionInfo = qodService.renewSession(sessionId, renewSession);
     return ResponseEntity.status(HttpStatus.OK).body(sessionInfo);
   }
 
