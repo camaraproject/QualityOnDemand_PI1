@@ -38,7 +38,6 @@ import com.camara.scef.api.AsSessionWithQoSApiSubscriptionLevelPostOperationApi;
 import com.camara.scef.api.model.AsSessionWithQoSSubscription;
 import com.camara.scef.api.model.FlowInfo;
 import com.camara.scef.api.model.UserPlaneEvent;
-import com.camara.scef.api.model.UserPlaneNotificationData;
 import com.qod.model.BookkeeperCreateSession;
 import com.qod.service.BookkeeperService;
 import inet.ipaddr.IPAddressString;
@@ -46,16 +45,15 @@ import java.time.Instant;
 import java.util.*;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
-import javax.websocket.Session;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpStatusCodeException;
 
 /** Service, that supports the implementations of the methods of the sessions' path. */
 @Service
@@ -317,17 +315,17 @@ public class QodServiceImpl implements QodService {
         .remove(redisConfig.getQosSessionExpirationListName(), sessionId.toString());
 
     if (qosSession.getSubscriptionId() != null) {
-      ResponseEntity<UserPlaneNotificationData> response =
-          deleteApi.scsAsIdSubscriptionsSubscriptionIdDeleteWithHttpInfo(
-              scefConfig.getScsAsId(), qosSession.getSubscriptionId());
-      if (!response.getStatusCode().is2xxSuccessful()) {
-        // TODO properly process NEF/SCEF error codes
+    // TODO properly process NEF/SCEF error codes
+      try {
+        deleteApi.scsAsIdSubscriptionsSubscriptionIdDeleteWithHttpInfo(
+                        scefConfig.getScsAsId(), qosSession.getSubscriptionId());
+      } catch (HttpStatusCodeException e) {
         throw new SessionApiException(
-            HttpStatus.INTERNAL_SERVER_ERROR,
-            "NEF/SCEF returned error "
-                + response.getStatusCodeValue()
-                + " while deleting NEF/SCEF session with subscription ID: "
-                + qosSession.getSubscriptionId());
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "NEF/SCEF returned error "
+                        + e.getStatusCode()
+                        + " while deleting NEF/SCEF session with subscription ID: "
+                        + qosSession.getSubscriptionId());
       }
     }
     return modelMapper.map(qosSession);
