@@ -144,12 +144,20 @@ public class QodServiceImpl implements QodService {
                 + " to expire, please delete the session if it is not needed anymore.");
       }
 
-      Boolean updateResult =
-          bookkeeperService.changeBookingTime(
-              id,
-              Date.from(
-                  Instant.ofEpochSecond(
-                          qosSession.getStartedAt() + renewSession.getDuration())));
+      Boolean updateResult;
+
+      try {
+        updateResult =
+                bookkeeperService.changeBookingTime(
+                        id,
+                        Date.from(
+                                Instant.ofEpochSecond(
+                                        qosSession.getStartedAt() + renewSession.getDuration())));
+      } catch (Exception e) {
+        throw new SessionApiException(
+                HttpStatus.SERVICE_UNAVAILABLE, "The service is currently not available");
+      }
+
       if (!updateResult) {
         throw new SessionApiException(
             HttpStatus.CONFLICT, "Requested QoS session is currently not available");
