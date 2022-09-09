@@ -89,7 +89,6 @@ class SessionsApiDelegateImplTest {
     stubForCreateSubscription();
     stubForBookkeeperAvailabilityRequest(true);
     stubForBookkeeperBookingRequest();
-    //stubForBookkeeperChangeBookingTimeRequest(true);
     stubForBookkeeperDeleteBookingRequest();
     stubForDeleteSubscription();
 
@@ -99,48 +98,6 @@ class SessionsApiDelegateImplTest {
     updateSession(sessionId, renewSession);
     deleteSession(sessionId);
   }
-
-//  @Test
-//  void updateDurationBookkeeperNotAvailable() throws JsonProcessingException {
-//    stubForCreateSubscription();
-//    stubForBookkeeperAvailabilityRequest(true);
-//    stubForBookkeeperBookingRequest();
-//    stubForBookkeeperChangeBookingTimeRequest(false);
-//    stubForBookkeeperDeleteBookingRequest();
-//    stubForDeleteSubscription();
-//
-//    RenewSession renewSession = new RenewSession().duration(20);
-//    UUID sessionId = createSession(session(
-//            qodConfig.getQosExpirationTimeBeforeHandling() + 100));
-//
-//    SessionApiException exception =
-//            assertThrows(
-//                    SessionApiException.class,
-//                    () -> api.renewSession(sessionId, renewSession));
-//    assertTrue(exception.getMessage().contains("Requested QoS session is currently not available"));
-//    assertSame(exception.getHttpStatus(), HttpStatus.CONFLICT);
-//  }
-
-//  @Test
-//  void updateDurationBookkeeperError() throws JsonProcessingException {
-//    stubForCreateSubscription();
-//    stubForBookkeeperAvailabilityRequest(true);
-//    stubForBookkeeperBookingRequest();
-//    stubForBookkeeperChangeBookingTimeErrorRequest();
-//    stubForBookkeeperDeleteBookingRequest();
-//    stubForDeleteSubscription();
-//
-//    RenewSession renewSession = new RenewSession().duration(20);
-//    UUID sessionId = createSession(session(
-//            qodConfig.getQosExpirationTimeBeforeHandling() + 100));
-//
-//    SessionApiException exception =
-//            assertThrows(SessionApiException.class,
-//                    () -> api.renewSession(sessionId, renewSession));
-//    assertTrue(exception.getMessage().contains("The service is currently not available"));
-//    assertSame(exception.getHttpStatus(), HttpStatus.SERVICE_UNAVAILABLE);
-//    deleteSession(sessionId);
-//  }
 
   @Test
   void updateSessionDurationNotValid() {
@@ -168,7 +125,6 @@ class SessionsApiDelegateImplTest {
     stubForCreateSubscription();
     stubForBookkeeperAvailabilityRequest(true);
     stubForBookkeeperBookingRequest();
-    //stubForBookkeeperChangeBookingTimeRequest(true);
     stubForBookkeeperDeleteBookingRequest();
     stubForDeleteSubscription();
 
@@ -189,7 +145,6 @@ class SessionsApiDelegateImplTest {
     stubForCreateSubscription();
     stubForBookkeeperAvailabilityRequest(true);
     stubForBookkeeperBookingRequest();
-    //stubForBookkeeperChangeBookingTimeRequest(true);
     stubForBookkeeperDeleteBookingRequest();
     stubForDeleteSubscription();
 
@@ -673,26 +628,6 @@ class SessionsApiDelegateImplTest {
                             .withFault(Fault.EMPTY_RESPONSE)));
   }
 
-//  private void stubForBookkeeperChangeBookingTimeRequest(Boolean isSuccessful) throws JsonProcessingException {
-//    stubFor(
-//            patch(
-//                    urlPathMatching(
-//                            "/service/([a-zA-Z0-9/-]*)"))
-//                    .willReturn(
-//                            created()
-//                                    .withHeader("Content-Type", "application/json")
-//                                    .withBody(bookkeeperChangeBookingTimeJsonString(isSuccessful))));
-//  }
-
-//  private void stubForBookkeeperChangeBookingTimeErrorRequest() {
-//    stubFor(
-//            patch(
-//                    urlPathMatching(
-//                            "/service/([a-zA-Z0-9/-]*)"))
-//                    .willReturn(aResponse()
-//                            .withFault(Fault.EMPTY_RESPONSE)));
-//  }
-
   private String bookkeeperAvailabilityJsonString(Boolean isSuccessful) throws JsonProcessingException {
     ObjectMapper objectMapper = new ObjectMapper();
 
@@ -709,14 +644,6 @@ class SessionsApiDelegateImplTest {
     bookingData.put("id", "57bccde0-2a81-4b05-ab89-0bb80bb9fe63");
     return objectMapper.writeValueAsString(bookingData);
   }
-
-//  private String bookkeeperChangeBookingTimeJsonString(Boolean isSuccessful) throws JsonProcessingException {
-//    ObjectMapper objectMapper = new ObjectMapper();
-//
-//    Map<String, String> changeBookingTimeData = new HashMap<>();
-//    changeBookingTimeData.put("qualificationResult", isSuccessful ? "qualified" : "unqualified");
-//    return objectMapper.writeValueAsString(changeBookingTimeData);
-//  }
 
   private CreateSession session(QosProfile qosProfile) {
     return session(qosProfile, "200.24.24.2");
