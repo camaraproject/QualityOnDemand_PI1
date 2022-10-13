@@ -1,4 +1,4 @@
-FROM gcr.io/distroless/java:11 as build
+FROM gcr.io/distroless/java17 as build
 COPY core/target/*.jar app.jar
 EXPOSE 9091
 EXPOSE 9092

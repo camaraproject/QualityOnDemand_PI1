@@ -181,7 +181,7 @@ public class QodServiceImpl implements QodService {
   public SessionInfo createSession(@NotNull CreateSession session) {
     QosProfile qosProfile = session.getQos();
     final int flowId = getFlowId(qosProfile);
-    List<Message> messages = new ArrayList<Message>();
+    List<Message> messages = new ArrayList<>();
 
     // if multiple ueAddr are not allowed and specified ueAddr is a network segment, return error
     if (!qodConfig.getQosAllowMultipleUeAddr()
@@ -459,23 +459,13 @@ public class QodServiceImpl implements QodService {
   }
 
   private int getFlowId(@NotNull QosProfile profile) {
-    int flowId;
-    switch (profile) {
-      case LOW_LATENCY:
-        flowId = scefConfig.getFlowIdLowLatency();
-        break;
-      case THROUGHPUT_S:
-        flowId = scefConfig.getFlowIdThroughputS();
-        break;
-      case THROUGHPUT_M:
-        flowId = scefConfig.getFlowIdThroughputM();
-        break;
-      case THROUGHPUT_L:
-        flowId = scefConfig.getFlowIdThroughputL();
-        break;
-      default:
-        flowId = FLOW_ID_UNKNOWN;
-    }
+    int flowId = switch (profile) {
+      case LOW_LATENCY -> scefConfig.getFlowIdLowLatency();
+      case THROUGHPUT_S -> scefConfig.getFlowIdThroughputS();
+      case THROUGHPUT_M -> scefConfig.getFlowIdThroughputM();
+      case THROUGHPUT_L -> scefConfig.getFlowIdThroughputL();
+    };
+
     if (flowId == FLOW_ID_UNKNOWN) {
       throw new SessionApiException(HttpStatus.BAD_REQUEST, "QoS profile unknown or disabled");
     }
@@ -509,31 +499,20 @@ public class QodServiceImpl implements QodService {
   }
 
   private String getReference(QosProfile profile) {
-    switch (profile) {
-      case LOW_LATENCY:
-        return qodConfig.getQosReferenceLowLatency();
-      case THROUGHPUT_S:
-        return qodConfig.getQosReferenceThroughputS();
-      case THROUGHPUT_M:
-        return qodConfig.getQosReferenceThroughputM();
-      case THROUGHPUT_L:
-        return qodConfig.getQosReferenceThroughputL();
-      default:
-        throw new SessionApiException(HttpStatus.BAD_REQUEST, "QoS profile not valid");
-    }
+    return switch (profile) {
+      case LOW_LATENCY -> qodConfig.getQosReferenceLowLatency();
+      case THROUGHPUT_S -> qodConfig.getQosReferenceThroughputS();
+      case THROUGHPUT_M -> qodConfig.getQosReferenceThroughputM();
+      case THROUGHPUT_L -> qodConfig.getQosReferenceThroughputL();
+    };
   }
 
   private String getProtocol(Protocol protocol) {
-    switch (protocol) {
-      case ANY:
-        return "ip";
-      case TCP:
-        return "6";
-      case UDP:
-        return "17";
-      default:
-        throw new SessionApiException(HttpStatus.BAD_REQUEST, "Protocol not valid");
-    }
+    return switch (protocol) {
+      case ANY -> "ip";
+      case TCP -> "6";
+      case UDP -> "17";
+    };
   }
 
   private FlowInfo createFlowInfo(

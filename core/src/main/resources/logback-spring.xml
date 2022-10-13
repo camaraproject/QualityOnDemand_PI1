@@ -52,4 +52,14 @@
             <appender-ref ref="ConsoleAppender"/>
         </logger>
     </springProfile>
+
+    <springProfile name="default">
+        <root level="INFO">
+            <appender-ref ref="ConsoleAppender"/>
+        </root>
+        <logger name="com.camara" additivity="false" level="INFO">
+            <appender-ref ref="ConsoleAppender"/>
+        </logger>
+        <logger name="org.springframework" level="INFO"/>
+    </springProfile>
 </configuration>

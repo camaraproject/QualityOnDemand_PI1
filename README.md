@@ -4,7 +4,7 @@
 
 ### Prerequisites
 
-Make sure Maven 3 or greater and JDK 11 are installed on your system.
+Make sure Maven 3 or greater and JDK 17 are installed on your system.
 
 ### How to run locally
 
@@ -31,9 +31,11 @@ Therefore you can use a local instance of Redis DB or start Redis from Docker co
 For information about how to configure the QoD API, please refer to the next section "Configuration".
 
 Start the qod-api service from terminal or from an IDE or with docker
-* from terminal:```java -Dspring.profiles.active=local -jar core/target/senf-core-<current version>.jar```
+* from terminal:```java --add-opens=java.base/java.net=ALL-UNNAMED -Dfile.encoding=UTF-8 -jar core\target\senf-core-<current version>.jar -Dspring.profiles.active=local```
 * from an IDE: Application can also be started directly from an IDE like IntelliJ, Eclipse, etc. by passing VM
-  option ```-Dspring.profiles.active=local``` in the "Run Configuration"
+  options in the "Run Configuration":
+  * --add-opens=java.base/java.net=ALL-UNNAMED
+  * -Dspring.profiles.active=local
 * with docker: 
   * ```docker build -t qod-api . ```
   * ```docker run -dp 9091:9091 -p 9092:9092 qod-api```
