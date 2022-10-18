@@ -22,16 +22,24 @@
 
 package com.camara.qod.service;
 
-import com.camara.qod.api.model.*;
+import com.camara.datatypes.model.QosSession;
+import com.camara.qod.api.model.CheckQosAvailabilityResponse;
+import com.camara.qod.api.model.CheckQosAvailabilityResponseQosProfiles;
+import com.camara.qod.api.model.CreateSession;
+import com.camara.qod.api.model.Message;
+import com.camara.qod.api.model.Notification;
+import com.camara.qod.api.model.Protocol;
+import com.camara.qod.api.model.QosProfile;
+import com.camara.qod.api.model.RenewSession;
+import com.camara.qod.api.model.SessionEvent;
+import com.camara.qod.api.model.SessionInfo;
 import com.camara.qod.api.notifications.SessionNotificationsCallbackApi;
 import com.camara.qod.commons.Util;
 import com.camara.qod.config.QodConfig;
-import com.camara.qod.config.RedisConfig;
 import com.camara.qod.config.ScefConfig;
 import com.camara.qod.controller.SessionApiException;
 import com.camara.qod.mapping.ModelMapper;
-import com.camara.qod.model.QosSession;
-import com.camara.qod.repository.QodSessionRepository;
+import com.camara.qod.plugin.storage.StorageInterface;
 import com.camara.scef.api.ApiClient;
 import com.camara.scef.api.AsSessionWithQoSApiSubscriptionLevelDeleteOperationApi;
 import com.camara.scef.api.AsSessionWithQoSApiSubscriptionLevelPostOperationApi;
@@ -42,22 +50,28 @@ import com.qod.model.BookkeeperCreateSession;
 import com.qod.service.BookkeeperService;
 import inet.ipaddr.IPAddressString;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpStatusCodeException;
 
-/** Service, that supports the implementations of the methods of the sessions' path. */
+/**
+ * Service, that supports the implementations of the methods of the sessions' path.
+ */
 @Service
 public class QodServiceImpl implements QodService {
+
   private static final Logger log = LoggerFactory.getLogger(QodServiceImpl.class);
 
   private static final String BASE_URL_TEMPLATE = "%s/3gpp-as-session-with-qos/v1";
@@ -65,19 +79,18 @@ public class QodServiceImpl implements QodService {
   private static final String FLOW_DESCRIPTION_TEMPLATE_IN = "permit in %s from %s to %s";
   private static final String FLOW_DESCRIPTION_TEMPLATE_OUT = "permit out %s from %s to %s";
   private static final String[] PRIVATE_NETWORKS = {
-    "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"
+      "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"
   };
 
-  /** SCEF QoS API, see http://www.3gpp.org/ftp/Specs/archive/29_series/29.122/ */
+  /**
+   * SCEF QoS API, see http://www.3gpp.org/ftp/Specs/archive/29_series/29.122/
+   */
   private final ScefConfig scefConfig;
 
   private final QodConfig qodConfig;
-  private final RedisConfig redisConfig;
 
-  private final QodSessionRepository sessionRepo;
   private final ModelMapper modelMapper;
-  private final RedisTemplate<String, String> redisTemplate;
-
+  private final StorageInterface storage;
   private final AsSessionWithQoSApiSubscriptionLevelPostOperationApi postApi;
   private final AsSessionWithQoSApiSubscriptionLevelDeleteOperationApi deleteApi;
 
@@ -85,20 +98,16 @@ public class QodServiceImpl implements QodService {
 
   @Autowired
   public QodServiceImpl(
-      QodSessionRepository sessionRepo,
       ModelMapper modelMapper,
-      RedisTemplate<String, String> redisTemplate,
       ScefConfig scefConfig,
       QodConfig qodConfig,
-      RedisConfig redisConfig,
-      BookkeeperService bookkeeperService) {
-    this.sessionRepo = sessionRepo;
+      BookkeeperService bookkeeperService,
+      StorageInterface storage) {
     this.modelMapper = modelMapper;
-    this.redisTemplate = redisTemplate;
     this.scefConfig = scefConfig;
     this.qodConfig = qodConfig;
-    this.redisConfig = redisConfig;
     this.bookkeeperService = bookkeeperService;
+    this.storage = storage;
 
     ApiClient apiClient =
         new ApiClient().setBasePath(String.format(BASE_URL_TEMPLATE, scefConfig.getApiRoot()));
@@ -113,26 +122,32 @@ public class QodServiceImpl implements QodService {
     this.deleteApi = new AsSessionWithQoSApiSubscriptionLevelDeleteOperationApi(apiClient);
   }
 
-  /** Update certain attributes only included in UpdateSession class. */
+  /**
+   * Update certain attributes only included in UpdateSession class.
+   */
   @Override
   public SessionInfo renewSession(UUID id, RenewSession renewSession) {
     QosSession qosSession =
-        sessionRepo
-            .findById(id)
+        storage.getSession(id)
             .orElseThrow(
                 () ->
                     new SessionApiException(
                         HttpStatus.NOT_FOUND, "QoD session not found for session ID: " + id));
 
     // Assert that the session is not planned to be deleted
-    if(Instant.ofEpochSecond(qosSession.getExpiresAt() - qodConfig.getQosExpirationTimeBeforeHandling()).compareTo(Instant.now()) < 0){
-      log.debug("The session " + qosSession.getId() + "is planned to be executed, therefore it is not updated");
-      throw new SessionApiException(HttpStatus.CONFLICT, "The session cannot be updated, it will soon expire.");
+    if (Instant.ofEpochSecond(
+            qosSession.getExpiresAt() - qodConfig.getQosExpirationTimeBeforeHandling())
+        .compareTo(Instant.now()) < 0) {
+      log.debug("The session " + qosSession.getId()
+          + "is planned to be executed, therefore it is not updated");
+      throw new SessionApiException(HttpStatus.CONFLICT,
+          "The session cannot be updated, it will soon expire.");
     }
 
     if (renewSession.getDuration() != null) {
       // Assert that startsAt + duration > now
-      if (Instant.ofEpochSecond(renewSession.getDuration() + qosSession.getStartedAt()).compareTo(Instant.now()) <= 0) {
+      if (Instant.ofEpochSecond(renewSession.getDuration() + qosSession.getStartedAt())
+          .compareTo(Instant.now()) <= 0) {
         log.debug(
             "The requested duration would cause the session "
                 + qosSession.getId()
@@ -148,14 +163,14 @@ public class QodServiceImpl implements QodService {
 
       try {
         updateResult =
-                bookkeeperService.changeBookingTime(
-                        id,
-                        Date.from(
-                                Instant.ofEpochSecond(
-                                        qosSession.getStartedAt() + renewSession.getDuration())));
+            bookkeeperService.changeBookingTime(
+                id,
+                Date.from(
+                    Instant.ofEpochSecond(
+                        qosSession.getStartedAt() + renewSession.getDuration())));
       } catch (Exception e) {
         throw new SessionApiException(
-                HttpStatus.SERVICE_UNAVAILABLE, "The service is currently not available");
+            HttpStatus.SERVICE_UNAVAILABLE, "The service is currently not available");
       }
 
       if (!updateResult) {
@@ -166,13 +181,8 @@ public class QodServiceImpl implements QodService {
       qosSession.setDuration(renewSession.getDuration());
       qosSession.setExpiresAt(qosSession.getStartedAt() + renewSession.getDuration());
 
-      sessionRepo.save(qosSession);
-      redisTemplate
-              .opsForZSet()
-              .add(
-                      redisConfig.getQosSessionExpirationListName(),
-                      qosSession.getId().toString(),
-                      qosSession.getExpiresAt());
+      storage.saveSession(qosSession);
+      storage.addExpiration(id, qosSession.getExpiresAt());
     }
     return modelMapper.map(qosSession);
   }
@@ -221,7 +231,9 @@ public class QodServiceImpl implements QodService {
       IPAddressString pn = new IPAddressString(privateNetwork);
       if (pn.contains(new IPAddressString(session.getAsAddr()))) {
         Message warning = new Message();
-        String description = String.format("AS address range is in private network (%s). Some features may not work properly.", privateNetwork);
+        String description = String.format(
+            "AS address range is in private network (%s). Some features may not work properly.",
+            privateNetwork);
         warning.setSeverity(Message.SeverityEnum.WARNING);
         warning.setDescription(description);
         messages.add(warning);
@@ -275,9 +287,12 @@ public class QodServiceImpl implements QodService {
           "No valid subscription ID was provided in NEF/SCEF response");
     }
 
-    QosSession qosSession =
-        saveSession(
-            now, expiresAt, duration, uuid, session, qosProfile, subscriptionId, bookkeeperId);
+    log.info("Save QoS session " + session);
+
+    QosSession qosSession = storage.saveSession(now, expiresAt, uuid, session, subscriptionId,
+        bookkeeperId);
+    // add an entry to a sorted set which contains the session id and the expiration time
+    storage.addExpiration(uuid, expiresAt);
 
     SessionInfo ret = modelMapper.map(qosSession);
 
@@ -288,8 +303,7 @@ public class QodServiceImpl implements QodService {
 
   @Override
   public SessionInfo getSession(@NotNull UUID sessionId) {
-    return sessionRepo
-        .findById(sessionId)
+    return storage.getSession(sessionId)
         .map(modelMapper::map)
         .orElseThrow(
             () ->
@@ -299,41 +313,39 @@ public class QodServiceImpl implements QodService {
 
   @Override
   public SessionInfo deleteSession(@NotNull UUID sessionId) {
-    QosSession qosSession =
-        sessionRepo
-            .findById(sessionId)
-            .orElseThrow(
-                () ->
-                    new SessionApiException(
-                        HttpStatus.NOT_FOUND,
-                        "QoD session not found for session ID: " + sessionId));
+    QosSession qosSession = storage.getSession(sessionId)
+        .orElseThrow(
+            () ->
+                new SessionApiException(
+                    HttpStatus.NOT_FOUND,
+                    "QoD session not found for session ID: " + sessionId));
 
     if (qodConfig.getQosBookkeeperEnabled()) {
       try {
         bookkeeperService.deleteBooking(qosSession.getBookkeeperId());
       } catch (Exception e) {
-        throw new SessionApiException(
-            HttpStatus.SERVICE_UNAVAILABLE, "The service is currently not available");
+        throw new SessionApiException(HttpStatus.SERVICE_UNAVAILABLE,
+            "The service is currently not available");
       }
     }
 
-    sessionRepo.deleteById(sessionId);
-    redisTemplate
-        .opsForZSet()
-        .remove(redisConfig.getQosSessionExpirationListName(), sessionId.toString());
+    // delete the session
+    storage.deleteSession(sessionId);
+    // delete the entry of the sorted set (id, expirationTime)
+    storage.removeExpiration(sessionId);
 
     if (qosSession.getSubscriptionId() != null) {
-    // TODO properly process NEF/SCEF error codes
+      // TODO properly process NEF/SCEF error codes
       try {
         deleteApi.scsAsIdSubscriptionsSubscriptionIdDeleteWithHttpInfo(
-                        scefConfig.getScsAsId(), qosSession.getSubscriptionId());
+            scefConfig.getScsAsId(), qosSession.getSubscriptionId());
       } catch (HttpStatusCodeException e) {
         throw new SessionApiException(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                "NEF/SCEF returned error "
-                        + e.getStatusCode()
-                        + " while deleting NEF/SCEF session with subscription ID: "
-                        + qosSession.getSubscriptionId());
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "NEF/SCEF returned error "
+                + e.getStatusCode()
+                + " while deleting NEF/SCEF session with subscription ID: "
+                + qosSession.getSubscriptionId());
       }
     }
     return modelMapper.map(qosSession);
@@ -343,7 +355,7 @@ public class QodServiceImpl implements QodService {
   @Async
   public void handleQosNotification(
       @NotBlank String subscriptionId, @NotNull UserPlaneEvent event) {
-    Optional<QosSession> sessionOptional = sessionRepo.findBySubscriptionId(subscriptionId);
+    Optional<QosSession> sessionOptional = storage.findBySubscriptionId(subscriptionId);
     // TODO implement proper event model. For now only SESSION_TERMINATED event is supported
     if (sessionOptional.isPresent() && event.equals(UserPlaneEvent.SESSION_TERMINATION)) {
       QosSession session = sessionOptional.get();
@@ -406,58 +418,6 @@ public class QodServiceImpl implements QodService {
         bookkprSession);
   }
 
-  /**
-   * Save QoS session.
-   *
-   * @param startedAt - timestamp of session begin
-   * @param expiresAt - timestamp of automatic session termination
-   * @param duration - session duration in seconds
-   * @param session - information to new session
-   * @param qualityProfile - quality requested for session
-   * @param subscriptionId - network QoS subscription ID
-   * @return created QoS session
-   */
-  private QosSession saveSession(
-      long startedAt,
-      long expiresAt,
-      int duration,
-      UUID uuid,
-      CreateSession session,
-      QosProfile qualityProfile,
-      String subscriptionId,
-      UUID bookkeeperId) {
-    QosSession qosSession =
-        QosSession.builder()
-            .id(uuid)
-            .startedAt(startedAt)
-            .expiresAt(expiresAt)
-            .duration(duration)
-            .ueAddr(session.getUeAddr())
-            .asAddr(session.getAsAddr())
-            .uePorts(session.getUePorts())
-            .asPorts(session.getAsPorts())
-            .protocolIn(session.getProtocolIn())
-            .protocolOut(session.getProtocolOut())
-            .qos(qualityProfile)
-            .subscriptionId(subscriptionId)
-            .notificationUri(session.getNotificationUri())
-            .notificationAuthToken(session.getNotificationAuthToken())
-            .expirationLockUntil(0) // Expiration Lock is initialised with 0, gets updated when an
-            // ExpiredSessionTask is created
-            .bookkeeperId(bookkeeperId)
-            .build();
-    log.info("Save QoS session " + qosSession);
-    sessionRepo.save(qosSession);
-    // add an entry to a sorted set which contains the session id and the expiration time
-    redisTemplate
-        .opsForZSet()
-        .add(
-            redisConfig.getQosSessionExpirationListName(),
-            qosSession.getId().toString(),
-            expiresAt);
-    return qosSession;
-  }
-
   private int getFlowId(@NotNull QosProfile profile) {
     int flowId = switch (profile) {
       case LOW_LATENCY -> scefConfig.getFlowIdLowLatency();
@@ -479,7 +439,7 @@ public class QodServiceImpl implements QodService {
       String asPorts,
       Protocol inProtocol,
       Protocol outProtocol) {
-    List<QosSession> qosSessions = sessionRepo.findByUeAddr(ueAddr);
+    List<QosSession> qosSessions = storage.findByUeAddr(ueAddr);
 
     return qosSessions.stream()
         .filter(qosSession -> checkNetworkIntersection(asAddr, qosSession.getAsAddr()))
@@ -578,7 +538,7 @@ public class QodServiceImpl implements QodService {
    * Check if the ports of a new requested session are already defined in an active Session.
    *
    * @param newSessionPorts Ports of the new requested Session
-   * @param existingPorts Ports of active sessions
+   * @param existingPorts   Ports of active sessions
    * @return true for ports already in use, false for ports not in use
    */
   private static boolean checkPortIntersection(String newSessionPorts, String existingPorts) {
@@ -633,7 +593,7 @@ public class QodServiceImpl implements QodService {
    *
    * @param ueId UE identifier
    * @return Http response with a list of available QoS profiles. Only available on the
-   *     Throughput-API.
+   * Throughput-API.
    */
   public CheckQosAvailabilityResponse checkQosAvailability(@NotNull String ueId) {
     if (scefConfig.getFlowIdThroughputS() == FLOW_ID_UNKNOWN) {

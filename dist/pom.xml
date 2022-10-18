@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <artifactId>senf-distribution</artifactId>
+  <version>0.1.0</version>
+  <packaging>jar</packaging>
+  <parent>
+    <groupId>com.camara</groupId>
+    <artifactId>qod</artifactId>
+    <version>0.1.0</version>
+  </parent>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <executions>
+          <execution>
+            <configuration>
+              <descriptors>
+                <descriptor>src/main/assembly/dist.xml</descriptor>
+              </descriptors>
+            </configuration>
+            <goals>
+              <goal>attached</goal>
+            </goals>
+            <id>user_distribution</id>
+            <phase>package</phase>
+          </execution>
+        </executions>
+        <version>2.2-beta-5</version>
+      </plugin>
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>default-jar</id>
+            <phase>none</phase>
+            <configuration>
+              <finalName>unwanted</finalName>
+              <classifier>unwanted</classifier>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+  <dependencies>
+    <dependency>
+      <artifactId>senf-core</artifactId>
+      <version>0.1.0</version>
+      <groupId>com.camara</groupId>
+    </dependency>
+  </dependencies>
+
+
+  <properties>
+    <root>${basedir}/..</root>
+  </properties>
+
+</project>

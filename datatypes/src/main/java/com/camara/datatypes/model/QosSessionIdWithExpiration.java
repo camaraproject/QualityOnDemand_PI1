@@ -20,29 +20,14 @@
  * ---license-end
  */
 
-package com.camara.qod.commons;
+package com.camara.datatypes.model;
 
-/**
- * This class contains utility functions.
- */
-public final class Util {
+import lombok.Data;
 
-  private Util() { }
+import java.util.UUID;
 
-  /**
-   * Returns the subscription id of a given subscription URI.
-   *
-   * @param subscriptionUri URI of the subscription
-   * @return subscriptionId
-   */
-  public static String subscriptionId(String subscriptionUri) {
-    if (subscriptionUri == null) {
-      return null;
-    }
-    String[] split = subscriptionUri.split("subscriptions/");
-    if (split.length == 0) {
-      return null;
-    }
-    return split[split.length - 1];
-  }
+@Data
+public class QosSessionIdWithExpiration {
+    private UUID id;
+    private long expiresAt;
 }

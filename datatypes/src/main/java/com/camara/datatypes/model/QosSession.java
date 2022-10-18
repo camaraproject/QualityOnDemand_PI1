@@ -20,35 +20,39 @@
  * ---license-end
  */
 
-package com.camara.qod.repository;
+package com.camara.datatypes.model;
 
-import com.camara.qod.model.QosSession;
-import java.util.List;
-import java.util.Optional;
+import com.camara.qod.api.model.Protocol;
+import com.camara.qod.api.model.QosProfile;
+import java.net.URI;
 import java.util.UUID;
-import javax.validation.constraints.NotBlank;
-import org.springframework.data.repository.CrudRepository;
-import org.springframework.stereotype.Repository;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+
 
 /**
- * Repository for QoSSessions.
+ * This is the QoS Session subscription resource.
  */
-@Repository
-public interface QodSessionRepository extends CrudRepository<QosSession, UUID> {
-
-  /**
-   * Get QoS session by UE address.
-   *
-   * @param ueAddr user equipment ip address to search for
-   * @return QoS session or null if session not found
-   */
-  List<QosSession> findByUeAddr(@NotBlank String ueAddr);
-
-  /**
-   * Get QoS session by SENF/NEF subscription.
-   *
-   * @param subscriptionId subscription id to search for
-   * @return QoS session or null if session not found
-   */
-  Optional<QosSession> findBySubscriptionId(@NotBlank String subscriptionId);
+@Data
+@SuperBuilder
+@NoArgsConstructor
+public class QosSession {
+  private UUID id;
+  private String subscriptionId;
+  private long startedAt;
+  private long expiresAt;
+  private int duration;
+  private String ueAddr;
+  private String asAddr;
+  private String uePorts;
+  private String asPorts;
+  private QosProfile qos;
+  private Protocol protocolIn;
+  private Protocol protocolOut;
+  private URI notificationUri;
+  private String notificationAuthToken;
+  private long
+      expirationLockUntil; // The lock ensures, that the task is only scheduled once for expiration.
+  private UUID bookkeeperId;
 }

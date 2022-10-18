@@ -37,10 +37,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 @EnableSchedulerLock(defaultLockAtMostFor = "1m")
 public class MainApp {
+
   static final Logger log = LoggerFactory.getLogger(MainApp.class);
 
   public static void main(String[] args) {
-
     log.info("Starting qod-api-service with {} args.", args.length);
     SpringApplication.run(MainApp.class, args);
   }

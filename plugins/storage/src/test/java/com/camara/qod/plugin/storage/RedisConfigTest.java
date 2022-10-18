@@ -20,29 +20,32 @@
  * ---license-end
  */
 
-package com.camara.qod.commons;
+package com.camara.qod.plugin.storage;
 
-/**
- * This class contains utility functions.
- */
-public final class Util {
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.test.context.ActiveProfiles;
+import redis.embedded.RedisServer;
 
-  private Util() { }
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 
-  /**
-   * Returns the subscription id of a given subscription URI.
-   *
-   * @param subscriptionUri URI of the subscription
-   * @return subscriptionId
-   */
-  public static String subscriptionId(String subscriptionUri) {
-    if (subscriptionUri == null) {
-      return null;
-    }
-    String[] split = subscriptionUri.split("subscriptions/");
-    if (split.length == 0) {
-      return null;
-    }
-    return split[split.length - 1];
+@TestConfiguration
+@ActiveProfiles("test")
+public class RedisConfigTest {
+
+  private RedisServer redisServer;
+
+  public RedisConfigTest() {
+    this.redisServer = new RedisServer(6370);
+  }
+
+  @PostConstruct
+  public void postConstruct() {
+    redisServer.start();
+  }
+
+  @PreDestroy
+  public void preDestroy() {
+    redisServer.stop();
   }
 }

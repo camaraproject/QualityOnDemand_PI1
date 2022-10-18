@@ -20,29 +20,16 @@
  * ---license-end
  */
 
-package com.camara.qod.commons;
+package com.camara.datatypes;
 
-/**
- * This class contains utility functions.
- */
-public final class Util {
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
 
-  private Util() { }
+@SpringBootTest
+class DatatypesApplicationTests {
 
-  /**
-   * Returns the subscription id of a given subscription URI.
-   *
-   * @param subscriptionUri URI of the subscription
-   * @return subscriptionId
-   */
-  public static String subscriptionId(String subscriptionUri) {
-    if (subscriptionUri == null) {
-      return null;
+    @Test
+    void contextLoads() {
     }
-    String[] split = subscriptionUri.split("subscriptions/");
-    if (split.length == 0) {
-      return null;
-    }
-    return split[split.length - 1];
-  }
+
 }

@@ -20,7 +20,7 @@
  * ---license-end
  */
 
-package com.camara.qod.config;
+package com.camara.qod.plugin.storage;
 
 import static org.springframework.data.redis.core.RedisKeyValueAdapter.EnableKeyspaceEvents.ON_STARTUP;
 

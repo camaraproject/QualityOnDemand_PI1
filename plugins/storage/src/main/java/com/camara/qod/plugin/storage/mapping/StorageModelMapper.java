@@ -20,21 +20,28 @@
  * ---license-end
  */
 
-package com.camara.qod.mapping;
+package com.camara.qod.plugin.storage.mapping;
 
 import com.camara.datatypes.model.QosSession;
-import com.camara.qod.api.model.CreateSession;
-import com.camara.qod.api.model.SessionInfo;
-import com.qod.model.BookkeeperCreateSession;
+import com.camara.datatypes.model.QosSessionIdWithExpiration;
+import com.camara.qod.plugin.storage.model.RedisQosSession;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.Mappings;
+import org.springframework.data.redis.core.ZSetOperations;
 
 /**
- * Maps the CreateSession model to the SessionsInfo model.
+ * Maps the QosSession model to the SessionsInfo model.
  */
 @Mapper(componentModel = "spring")
-public interface ModelMapper {
+public interface StorageModelMapper {
+  QosSession mapToLibraryQosSession(RedisQosSession redisQosSession);
+  RedisQosSession mapToRedisQosSession(QosSession qosSession);
 
-  SessionInfo map(QosSession qosSession);
+  @Mappings({
+          @Mapping(target= "id", expression = "java(java.util.UUID.fromString(redisSet.getValue()))"),
+          @Mapping(target= "expiresAt", expression = "java(redisSet.getScore().longValue())")
+  })
+  QosSessionIdWithExpiration mapToList(ZSetOperations.TypedTuple<String> redisSet);
 
-  BookkeeperCreateSession map(CreateSession createSession);
 }
