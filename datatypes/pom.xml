@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
@@ -12,9 +11,7 @@
   <artifactId>datatypes</artifactId>
   <version>0.1.0</version>
   <name>datatypes</name>
-  <description>Contains the datatypes, that are needed in multiple modules for the Quality on Demand
-    API.
-  </description>
+  <description>Contains the datatypes, that are needed in multiple modules for the Quality on Demand API.</description>
   <properties>
     <java.version>17</java.version>
     <lombok.version>1.18.24</lombok.version>
@@ -74,7 +71,51 @@
           <target>17</target>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
+        <version>${spotbugs.version}</version>
+        <configuration>
+          <xmlOutput>true</xmlOutput>
+          <failOnError>false</failOnError>
+          <outputEncoding>UTF-8</outputEncoding>
+          <excludeFilterFile>spotbugs-exclude.xml</excludeFilterFile>
+        </configuration>
+        <executions>
+          <execution>
+            <id>check</id>
+            <phase>package</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>${plugin.jacoco.version}</version>
+        <executions>
+          <execution>
+            <id>prepare-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+            <configuration>
+              <propertyName>surefireArgLine</propertyName>
+            </configuration>
+          </execution>
+          <execution>
+            <id>report</id>
+            <phase>package</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
+
   </build>
 
 </project>

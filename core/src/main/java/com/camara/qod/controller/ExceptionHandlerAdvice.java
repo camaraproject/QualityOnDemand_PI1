@@ -39,6 +39,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
  */
 @ControllerAdvice
 public class ExceptionHandlerAdvice {
+
   private static final Logger log = LoggerFactory.getLogger(ExceptionHandlerAdvice.class);
 
   private String toJsonErrorMessage(String errMsg) {
@@ -94,6 +95,6 @@ public class ExceptionHandlerAdvice {
         .contentType(MediaType.APPLICATION_JSON)
         .body(
             toJsonErrorMessage(
-                "Validation failed for parameter '" + e.getPath().get(0).getFieldName()));
+                "Validation failed for parameter '" + e.getPath().get(0).getFieldName() + "'"));
   }
 }

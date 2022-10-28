@@ -104,8 +104,7 @@ public class ExpiredSessionMonitor {
   }
 
   /**
-   * Class that deletes an expired session. Every almost expired session creates an instance of this
-   * class.
+   * Class that deletes an expired session. Every almost expired session creates an instance of this class.
    */
   class ExpiredSessionTask extends TimerTask {
 

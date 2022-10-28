@@ -48,7 +48,7 @@ public class RedisConfig {
   @Value("${spring.redis.host}")
   private String redisHost;
 
-  private final String qosSessionExpirationListName = "QoSSessionExpirationList";
+  private String qosSessionExpirationListName = "QoSSessionExpirationList";
 
   /**
    * Creates a redis connection instance with Lettuce connector.

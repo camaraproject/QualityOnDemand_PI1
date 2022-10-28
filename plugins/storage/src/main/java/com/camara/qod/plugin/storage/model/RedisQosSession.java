@@ -36,8 +36,13 @@ import org.springframework.data.redis.core.index.Indexed;
 @RedisHash("QoSSession")
 @NoArgsConstructor
 public class RedisQosSession extends com.camara.datatypes.model.QosSession {
-    @Indexed private String ueAddr;
-    @Indexed private String asAddr;
-    @Indexed private String uePorts;
-    @Indexed private String asPorts;
+
+  @Indexed
+  private String ueAddr;
+  @Indexed
+  private String asAddr;
+  @Indexed
+  private String uePorts;
+  @Indexed
+  private String asPorts;
 }

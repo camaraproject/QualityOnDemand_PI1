@@ -27,44 +27,37 @@ import lombok.ToString;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
-/** This class contains specific configurations for Quality on Demand. */
+/**
+ * This class contains specific configurations for Quality on Demand.
+ */
 @Configuration
 @Getter
 @ToString
 public class QodConfig {
+
+  public static final String NETWORK_SEGMENT_REGEX =
+      "^([01]?\\d\\d?|2[0-4]\\d|25[0-5])(?:\\.(?:[01]?\\d\\d?|2[0-4]\\d|25[0-5])){3}(\\/"
+          + "([0-9]|[1-2][0-9]|3[0-2]))$";
   @Value("${qod.qos.references.low-latency}")
   private String qosReferenceLowLatency;
-
   @Value("${qod.qos.references.throughput-s}")
   private String qosReferenceThroughputS;
-
   @Value("${qod.qos.references.throughput-m}")
   private String qosReferenceThroughputM;
-
   @Value("${qod.qos.references.throughput-l}")
   private String qosReferenceThroughputL;
-
   @Value("${qod.expiration.time-before-handling}")
   private int qosExpirationTimeBeforeHandling;
-
   @Value("${qod.expiration.trigger-interval}")
   private int qosExpirationTriggerInterval;
-
   @Value("${qod.expiration.lock-time}")
   private int qosExpirationLockTimeInSeconds;
-
   @Value("${qod.mask-sensible-data}")
   private Boolean qosMaskSensibleData;
-
   @Value("${qod.allow-multiple-ueaddr}")
   private Boolean qosAllowMultipleUeAddr;
-
   @Value("${qod.bookkeeper.enabled}")
   private Boolean qosBookkeeperEnabled;
-
   @Value("${qod.bookkeeper.url}")
   private String qosBookkeeperUrl;
-
-  private final String networkSegmentRegEx =
-      "^([01]?\\d\\d?|2[0-4]\\d|25[0-5])(?:\\.(?:[01]?\\d\\d?|2[0-4]\\d|25[0-5])){3}(\\/([0-9]|[1-2][0-9]|3[0-2]))$";
 }

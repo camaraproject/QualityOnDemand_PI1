@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <artifactId>senf-coverage</artifactId>
+  <version>0.1.0</version>
+  <packaging>pom</packaging>
+
+  <parent>
+    <groupId>com.camara</groupId>
+    <artifactId>qod</artifactId>
+    <version>0.1.0</version>
+  </parent>
+
+  <properties>
+    <!-- java -->
+    <java.version>17</java.version>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
+    <maven.deploy.skip>true</maven.deploy.skip>
+    <!-- charset -->
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.camara</groupId>
+      <artifactId>senf-core</artifactId>
+      <version>0.1.0</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>${plugin.jacoco.version}</version>
+        <executions>
+          <execution>
+            <id>report-aggregate</id>
+            <phase>package</phase>
+            <goals>
+              <goal>report-aggregate</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <excludes>
+            <exclude>**/*Configuration.class</exclude>
+            <exclude>**/*Config.class</exclude>
+            <exclude>**/*MapperImpl.class</exclude>
+            <exclude>**/*Config$*.*</exclude>
+            <exclude>**/*Exception.*</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>

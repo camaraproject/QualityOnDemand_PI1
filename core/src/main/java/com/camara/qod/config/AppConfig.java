@@ -22,6 +22,7 @@
 
 package com.camara.qod.config;
 
+import com.camara.scef.api.ApiClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
@@ -31,8 +32,30 @@ import org.springframework.web.client.RestTemplate;
  */
 @Configuration
 public class AppConfig {
+
+  private static final String BASE_URL_TEMPLATE = "%s/3gpp-as-session-with-qos/v1";
+
   @Bean
   public RestTemplate restTemplate() {
     return new RestTemplate();
+  }
+
+  /**
+   * Creates a {@link ApiClient}.
+   *
+   * @return the created client.
+   */
+  @Bean
+  public ApiClient apiClient(ScefConfig scefConfig) {
+    ApiClient apiClient =
+        new ApiClient().setBasePath(String.format(BASE_URL_TEMPLATE, scefConfig.getApiRoot()));
+    if (scefConfig.getAuthMethod().equals("basic")) {
+      apiClient.setUsername(scefConfig.getUserName());
+      apiClient.setPassword(scefConfig.getPassword());
+    } else {
+      apiClient.setAccessToken(scefConfig.getToken());
+    }
+    apiClient.setDebugging(scefConfig.getScefDebug());
+    return apiClient;
   }
 }

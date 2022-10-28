@@ -23,24 +23,22 @@
 package com.camara.qod.controller;
 
 import com.camara.qod.api.CheckQosAvailabilityApiDelegate;
-import com.camara.qod.api.model.CheckQosAvailabilityResponse;
 import com.camara.qod.api.model.CheckQosAvailabilityRequest;
+import com.camara.qod.api.model.CheckQosAvailabilityResponse;
 import com.camara.qod.service.QodService;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 
-/** Contains implementations for the methods of the checkservicequalification' path. */
+/**
+ * Contains implementations for the methods of the checkservicequalification' path.
+ */
 @Controller
-public class CheckQosAvailabilityApiDelegateImpl implements CheckQosAvailabilityApiDelegate {
-  private final QodService qodService;
+@RequiredArgsConstructor
+public class CheckQosAvailabilityController implements CheckQosAvailabilityApiDelegate {
 
-  @Autowired
-  public CheckQosAvailabilityApiDelegateImpl(QodService qodService) {
-    this.qodService = qodService;
-  }
+  private final QodService qodService;
 
   @Override
   public ResponseEntity<CheckQosAvailabilityResponse> checkQosAvailability(

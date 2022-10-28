@@ -20,16 +20,27 @@
  * ---license-end
  */
 
-package com.camara.datatypes;
+package com.camara.qod.util;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
-@SpringBootTest
-class DatatypesApplicationTests {
+/**
+ * test data class.
+ */
+public abstract class TestData {
 
-    @Test
-    void contextLoads() {
-    }
+  public static final ObjectMapper objectMapper = new ObjectMapper().registerModule(
+      new JavaTimeModule());
+
+  public static String getAsJsonFormat(Object o) throws JsonProcessingException {
+    return objectMapper.writeValueAsString(o);
+  }
+
+  public static <T> T getObjectFromJson(String json, Class<T> valueType)
+      throws JsonProcessingException {
+    return objectMapper.readValue(json, valueType);
+  }
 
 }

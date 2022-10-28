@@ -34,26 +34,27 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 
-/** Contains implementations for the methods of the sessions' path. */
+/**
+ * Contains implementations for the methods of the sessions' path.
+ */
 @Controller
-public class SessionsApiDelegateImpl implements SessionsApiDelegate {
+@RequiredArgsConstructor
+public class SessionsController implements SessionsApiDelegate {
+
   private static final int maxSessionDuration = 86400; // 24 hours
   private static final String PORTS_REGEX =
-      "^(6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[0-9]{1,4})$|^(6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[0-9]{1,4})-(6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[0-9]{1,4})$";
+      "^(6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[0-9]{1,4})$|^"
+          + "(6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[0-9]{1,4})-"
+          + "(6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[0-9]{1,4})$";
 
   private final QodService qodService;
-
-  @Autowired
-  public SessionsApiDelegateImpl(QodService qodService) {
-    this.qodService = qodService;
-  }
 
   @Override
   public ResponseEntity<SessionInfo> createSession(CreateSession createSession) {
@@ -69,9 +70,9 @@ public class SessionsApiDelegateImpl implements SessionsApiDelegate {
     SessionInfo sessionInfo = qodService.createSession(createSession);
 
     URI location = ServletUriComponentsBuilder.fromCurrentRequest()
-            .path("/{id}")
-            .buildAndExpand(sessionInfo.getId())
-            .toUri();
+        .path("/{id}")
+        .buildAndExpand(sessionInfo.getId())
+        .toUri();
     return ResponseEntity.created(location).body(sessionInfo);
   }
 

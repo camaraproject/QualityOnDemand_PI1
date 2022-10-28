@@ -27,9 +27,9 @@ import com.camara.qod.service.QodService;
 import com.camara.scef.api.model.UserPlaneEvent;
 import com.camara.scef.api.model.UserPlaneNotificationData;
 import com.camara.scef.api.notifications.NotificationsApiDelegate;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 
@@ -37,15 +37,12 @@ import org.springframework.stereotype.Controller;
  * Contains implementations for the methods of the notifications' path.
  */
 @Controller
-public class NotificationsApiDelegateImpl implements NotificationsApiDelegate {
-  private static final Logger log = LoggerFactory.getLogger(NotificationsApiDelegateImpl.class);
+@RequiredArgsConstructor
+public class NotificationsController implements NotificationsApiDelegate {
+
+  private static final Logger log = LoggerFactory.getLogger(NotificationsController.class);
 
   private final QodService qodService;
-
-  @Autowired
-  public NotificationsApiDelegateImpl(QodService qodService) {
-    this.qodService = qodService;
-  }
 
   @Override
   public ResponseEntity<Void> notificationsPost(

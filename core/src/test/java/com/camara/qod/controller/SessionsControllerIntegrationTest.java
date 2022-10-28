@@ -22,68 +22,97 @@
 
 package com.camara.qod.controller;
 
-import com.camara.qod.api.model.*;
+import static com.camara.qod.util.SessionsTestData.createTestSession;
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.created;
+import static com.github.tomakehurst.wiremock.client.WireMock.delete;
+import static com.github.tomakehurst.wiremock.client.WireMock.deleteRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.noContent;
+import static com.github.tomakehurst.wiremock.client.WireMock.ok;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.serviceUnavailable;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
+import static com.github.tomakehurst.wiremock.client.WireMock.verify;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import com.camara.qod.api.SessionsApi;
+import com.camara.qod.api.model.CreateSession;
+import com.camara.qod.api.model.Message;
+import com.camara.qod.api.model.Protocol;
+import com.camara.qod.api.model.QosProfile;
+import com.camara.qod.api.model.RenewSession;
+import com.camara.qod.api.model.SessionInfo;
 import com.camara.qod.config.QodConfig;
+import com.camara.scef.api.model.AsSessionWithQoSSubscription;
+import com.camara.scef.api.model.UserPlaneNotificationData;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.http.Fault;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
-import com.camara.scef.api.model.AsSessionWithQoSSubscription;
-import com.camara.scef.api.model.UserPlaneNotificationData;
-import com.camara.qod.api.SessionsApiDelegate;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
-
-import javax.validation.ConstraintViolation;
-import javax.validation.Validation;
-import javax.validation.Validator;
-import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import javax.validation.ConstraintViolation;
+import javax.validation.Validation;
+import javax.validation.Validator;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.ActiveProfiles;
+import redis.embedded.RedisServer;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static org.junit.jupiter.api.Assertions.*;
-
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@SpringBootTest(webEnvironment = WebEnvironment.MOCK)
 @ActiveProfiles("test")
 @WireMockTest(httpPort = 9000)
-class SessionsApiDelegateImplTest {
-  private final String asId;
-  private final SessionsApiDelegate api;
-  private final Boolean maskSensibleData;
-  private final Integer defaultDuration;
-  private final Boolean bookkeeperEnabled;
+class SessionsControllerIntegrationTest {
 
-  private final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
+  private static RedisServer redisServer = null;
 
-  private final QodConfig qodConfig;
+  @Value("${scef.server.scsasid}")
+  String asId;
   @Autowired
-  public SessionsApiDelegateImplTest(
-          @Value("${scef.server.scsasid}") String asId,
-          SessionsApiDelegate api,
-          @Value("${qod.mask-sensible-data}") Boolean maskSensibleData,
-          @Value("${qod.bookkeeper.enabled}") Boolean bookkeeperEnabled,
-          QodConfig qodConfig) {
-    this.asId = asId;
-    this.api = api;
-    this.maskSensibleData = maskSensibleData;
-    this.defaultDuration = 2;
-    this.bookkeeperEnabled = bookkeeperEnabled;
-    this.qodConfig = qodConfig;
+  SessionsApi api;
+  @Value("${qod.mask-sensible-data}")
+  Boolean maskSensibleData;
+  @Value("${qod.bookkeeper.enabled}")
+  Boolean bookkeeperEnabled;
+  @Autowired
+  QodConfig qodConfig;
+  Integer defaultDuration = 2;
+  Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
+  UUID sessionId;
 
-    MockHttpServletRequest request = new MockHttpServletRequest();
-    RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+  @BeforeAll
+  public static void setUp() {
+    redisServer = new RedisServer(6370);
+    if (redisServer.isActive()) {
+      redisServer.stop();
+    }
+    redisServer.start();
+
   }
+
+  @AfterAll
+  public static void tearDown() {
+    redisServer.stop();
+  }
+
   @Test
   void createAndUpdateDurationOfSession() throws JsonProcessingException {
     stubForCreateSubscription();
@@ -93,8 +122,7 @@ class SessionsApiDelegateImplTest {
     stubForDeleteSubscription();
 
     RenewSession renewSession = new RenewSession().duration(20);
-    UUID sessionId = createSession(session(
-            qodConfig.getQosExpirationTimeBeforeHandling() + 100));
+    UUID sessionId = createSession(createTestSession(qodConfig.getQosExpirationTimeBeforeHandling() + 100));
     updateSession(sessionId, renewSession);
     deleteSession(sessionId);
   }
@@ -102,26 +130,23 @@ class SessionsApiDelegateImplTest {
   @Test
   void updateSessionDurationNotValid() {
     RenewSession renewSession1 = new RenewSession().duration(0);
+    assertEquals(1, validator.validate(renewSession1).size());
+
     RenewSession renewSession2 = new RenewSession().duration(86401);
+    assertEquals(1, validator.validate(renewSession2).size());
+
     RenewSession renewSession3 = new RenewSession().duration(1);
+    assertTrue(validator.validate(renewSession3).isEmpty());
+
     RenewSession renewSession4 = new RenewSession().duration(86400);
+    assertTrue(validator.validate(renewSession4).isEmpty());
+
     RenewSession renewSession0 = new RenewSession();
-
-    Set<ConstraintViolation<RenewSession>> violations1 = validator.validate(renewSession1);
-    Set<ConstraintViolation<RenewSession>> violations2 = validator.validate(renewSession2);
-    Set<ConstraintViolation<RenewSession>> violations3 = validator.validate(renewSession3);
-    Set<ConstraintViolation<RenewSession>> violations4 = validator.validate(renewSession4);
-    Set<ConstraintViolation<RenewSession>> violations0 = validator.validate(renewSession0);
-
-    assertEquals(1, violations1.size());
-    assertEquals(1, violations2.size());
-    assertTrue(violations3.isEmpty());
-    assertTrue(violations4.isEmpty());
-    assertEquals(1, violations0.size());
+    assertEquals(1, validator.validate(renewSession0).size());
   }
 
   @Test
-  void updateDurationOfSessionWhichExpires() throws JsonProcessingException, InterruptedException {
+  void updateDurationOfSessionWhichExpires() throws JsonProcessingException {
     stubForCreateSubscription();
     stubForBookkeeperAvailabilityRequest(true);
     stubForBookkeeperBookingRequest();
@@ -129,13 +154,11 @@ class SessionsApiDelegateImplTest {
     stubForDeleteSubscription();
 
     RenewSession renewSession = new RenewSession().duration(60);
-    UUID sessionId = createSession(session(
-            qodConfig.getQosExpirationTimeBeforeHandling()));
+    UUID sessionId = createSession(createTestSession(qodConfig.getQosExpirationTimeBeforeHandling()));
 
-    Thread.sleep(qodConfig.getQosExpirationTimeBeforeHandling());
+    await().atMost(qodConfig.getQosExpirationTimeBeforeHandling(), SECONDS);
 
-    SessionApiException exception =
-            assertThrows(SessionApiException.class, () -> api.renewSession(sessionId, renewSession));
+    SessionApiException exception = assertThrows(SessionApiException.class, () -> api.renewSession(sessionId, renewSession));
     assertTrue(exception.getMessage().contains("will soon expire"));
     deleteSession(sessionId);
   }
@@ -149,13 +172,12 @@ class SessionsApiDelegateImplTest {
     stubForDeleteSubscription();
 
     RenewSession renewSession = new RenewSession().duration(1);
-    UUID sessionId = createSession(session(1000));
+    UUID sessionId = createSession(createTestSession(1000));
 
     Thread.sleep(1000);
 
-    SessionApiException exception =
-            assertThrows(SessionApiException.class, () -> api.renewSession(sessionId, renewSession));
-    assertSame(exception.getHttpStatus(), HttpStatus.CONFLICT);
+    SessionApiException exception = assertThrows(SessionApiException.class, () -> api.renewSession(sessionId, renewSession));
+    assertSame(HttpStatus.CONFLICT, exception.getHttpStatus());
     assertTrue(exception.getMessage().contains("duration would cause the session"));
     deleteSession(sessionId);
   }
@@ -163,10 +185,10 @@ class SessionsApiDelegateImplTest {
   @Test
   void updateUnknownSession() {
     RenewSession renewSession = new RenewSession().duration(60);
-    SessionApiException exception =
-            assertThrows(SessionApiException.class, () -> api.renewSession(UUID.randomUUID(), renewSession));
+    UUID uuid = UUID.randomUUID();
+    SessionApiException exception = assertThrows(SessionApiException.class, () -> api.renewSession(uuid, renewSession));
     assertTrue(exception.getMessage().contains("not found"));
-    assertSame(exception.getHttpStatus(), HttpStatus.NOT_FOUND);
+    assertSame(HttpStatus.NOT_FOUND, exception.getHttpStatus());
   }
 
   @Test
@@ -177,16 +199,17 @@ class SessionsApiDelegateImplTest {
     stubForBookkeeperBookingRequest();
     stubForBookkeeperDeleteBookingRequest();
 
-    UUID sessionId = createSession(session(QosProfile.LOW_LATENCY));
-    assertSame(api.getSession(sessionId).getStatusCode(), HttpStatus.OK);
+    UUID sessionId = createSession(createTestSession(QosProfile.LOW_LATENCY));
+    assertSame(HttpStatus.OK, api.getSession(sessionId).getStatusCode());
     api.deleteSession(sessionId);
   }
+
   @Test
   void getUnknownSession() {
-    SessionApiException exception =
-            assertThrows(SessionApiException.class, () -> api.getSession(UUID.randomUUID()));
+    UUID uuid = UUID.randomUUID();
+    SessionApiException exception = assertThrows(SessionApiException.class, () -> api.getSession(uuid));
     assertTrue(exception.getMessage().contains("not found"));
-    assertSame(exception.getHttpStatus(), HttpStatus.NOT_FOUND);
+    assertSame(HttpStatus.NOT_FOUND, exception.getHttpStatus());
   }
 
   @Test
@@ -197,7 +220,7 @@ class SessionsApiDelegateImplTest {
     stubForBookkeeperBookingRequest();
     stubForBookkeeperDeleteBookingRequest();
 
-    UUID sessionId = createSession(session(QosProfile.LOW_LATENCY));
+    UUID sessionId = createSession(createTestSession(QosProfile.LOW_LATENCY));
     deleteSession(sessionId);
   }
 
@@ -209,12 +232,11 @@ class SessionsApiDelegateImplTest {
     stubForBookkeeperBookingRequest();
     stubForBookkeeperDeleteBookingRequest();
 
-    SessionApiException exception =
-            assertThrows(
-                    SessionApiException.class,
-                    () -> api.createSession(session(QosProfile.LOW_LATENCY)));
+    CreateSession createSession = createTestSession(QosProfile.LOW_LATENCY);
+
+    SessionApiException exception = assertThrows(SessionApiException.class, () -> api.createSession(createSession));
     assertTrue(exception.getMessage().contains("No valid subscription"));
-    assertSame(exception.getHttpStatus(), HttpStatus.INTERNAL_SERVER_ERROR);
+    assertSame(HttpStatus.INTERNAL_SERVER_ERROR, exception.getHttpStatus());
   }
 
   @Test
@@ -226,14 +248,12 @@ class SessionsApiDelegateImplTest {
     stubForBookkeeperDeleteBookingRequest();
 
     if (bookkeeperEnabled) {
-      SessionApiException exception =
-              assertThrows(
-                      SessionApiException.class,
-                      () -> api.createSession(session(QosProfile.LOW_LATENCY)));
+      CreateSession session = createTestSession(QosProfile.LOW_LATENCY);
+      SessionApiException exception = assertThrows(SessionApiException.class, () -> api.createSession(session));
       assertTrue(exception.getMessage().contains("Requested QoS session is currently not available"));
-      assertSame(exception.getHttpStatus(), HttpStatus.CONFLICT);
+      assertSame(HttpStatus.CONFLICT, exception.getHttpStatus());
     } else {
-      UUID sessionId = createSession(session(QosProfile.LOW_LATENCY));
+      UUID sessionId = createSession(createTestSession(QosProfile.LOW_LATENCY));
       deleteSession(sessionId);
     }
   }
@@ -246,11 +266,10 @@ class SessionsApiDelegateImplTest {
     stubForBookkeeperBookingRequest();
     stubForBookkeeperDeleteBookingRequest();
 
-    SessionApiException exception =
-            assertThrows(SessionApiException.class,
-                    () -> api.createSession(session(QosProfile.LOW_LATENCY)));
+    CreateSession session = createTestSession(QosProfile.LOW_LATENCY);
+    SessionApiException exception = assertThrows(SessionApiException.class, () -> api.createSession(session));
     assertTrue(exception.getMessage().contains("The service is currently not available"));
-    assertSame(exception.getHttpStatus(), HttpStatus.SERVICE_UNAVAILABLE);
+    assertSame(HttpStatus.SERVICE_UNAVAILABLE, exception.getHttpStatus());
   }
 
 
@@ -262,12 +281,11 @@ class SessionsApiDelegateImplTest {
     stubForBookkeeperBookingRequest();
     stubForBookkeeperDeleteBookingRequest();
 
-    UUID sessionId = createSession(session(QosProfile.LOW_LATENCY));
-    SessionApiException exception =
-            assertThrows(
-                    SessionApiException.class, () -> api.createSession(session(QosProfile.LOW_LATENCY)));
+    sessionId = createSession(createTestSession(QosProfile.LOW_LATENCY));
+    CreateSession session = createTestSession(QosProfile.LOW_LATENCY);
+    SessionApiException exception = assertThrows(SessionApiException.class, () -> api.createSession(session));
     assertTrue(exception.getMessage().contains("already active"));
-    assertSame(exception.getHttpStatus(), HttpStatus.CONFLICT);
+    assertSame(HttpStatus.CONFLICT, exception.getHttpStatus());
     if (this.maskSensibleData) {
       assertTrue(exception.getMessage().contains("XXXXXXXX-XXXX-XXXX-XXXX-"));
     }
@@ -275,8 +293,7 @@ class SessionsApiDelegateImplTest {
   }
 
   /**
-   * New sessions should be validated against rules in order to prevent creating session which QoS
-   * profile couldn't be guaranteed.
+   * New sessions should be validated against rules in order to prevent creating session which QoS profile couldn't be guaranteed.
    */
   @Test
   void createOnlyValidSessions() throws JsonProcessingException {
@@ -286,20 +303,15 @@ class SessionsApiDelegateImplTest {
     stubForBookkeeperBookingRequest();
     stubForBookkeeperDeleteBookingRequest();
 
-    UUID sessionId =
-            createSession(
-                    session(QosProfile.LOW_LATENCY, "200.24.24.0/24", "5000-5002,6000", defaultDuration));
+    UUID sessionId = createSession(createTestSession(QosProfile.LOW_LATENCY, "200.24.24.0/24", "5000-5002,6000", defaultDuration));
 
     // not permitted because of included address, ports and protocols
-    SessionApiException exception =
-            assertThrows(
-                    SessionApiException.class,
-                    () -> api.createSession(session(QosProfile.LOW_LATENCY, "200.24.24.0/26")));
+    CreateSession session = createTestSession(QosProfile.LOW_LATENCY, "200.24.24.0/26");
+    SessionApiException exception = assertThrows(SessionApiException.class, () -> api.createSession(session));
     assertTrue(exception.getMessage().contains("already active"));
 
     // permitted because of different ports
-    UUID sessionIdTwo =
-            createSession(session(QosProfile.LOW_LATENCY, "200.24.24.0/24", "6001", defaultDuration));
+    UUID sessionIdTwo = createSession(createTestSession(QosProfile.LOW_LATENCY, "200.24.24.0/24", "6001", defaultDuration));
 
     deleteSession(sessionId);
     deleteSession(sessionIdTwo);
@@ -307,20 +319,17 @@ class SessionsApiDelegateImplTest {
 
   @Test
   void createSessionDurationNotValid() {
-    CreateSession session1 = session(QosProfile.LOW_LATENCY, "200.24.24.0", "5000", 0);
-    CreateSession session2 = session(QosProfile.LOW_LATENCY, "200.24.24.0", "5000", 86401);
-    CreateSession session3 = session(QosProfile.LOW_LATENCY, "200.24.24.0", "5000", 1);
-    CreateSession session4 = session(QosProfile.LOW_LATENCY, "200.24.24.0", "5000", 86400);
+    CreateSession session1 = createTestSession(QosProfile.LOW_LATENCY, "200.24.24.0", "5000", 0);
+    assertEquals(1, validator.validate(session1).size());
 
-    Set<ConstraintViolation<CreateSession>> violations1 = validator.validate(session1);
-    Set<ConstraintViolation<CreateSession>> violations2 = validator.validate(session2);
-    Set<ConstraintViolation<CreateSession>> violations3 = validator.validate(session3);
-    Set<ConstraintViolation<CreateSession>> violations4 = validator.validate(session4);
+    CreateSession session2 = createTestSession(QosProfile.LOW_LATENCY, "200.24.24.0", "5000", 86401);
+    assertEquals(1, validator.validate(session2).size());
 
-    assertEquals(1, violations1.size());
-    assertEquals(1, violations2.size());
-    assertTrue(violations3.isEmpty());
-    assertTrue(violations4.isEmpty());
+    CreateSession session3 = createTestSession(QosProfile.LOW_LATENCY, "200.24.24.0", "5000", 1);
+    assertTrue(validator.validate(session3).isEmpty());
+
+    CreateSession session4 = createTestSession(QosProfile.LOW_LATENCY, "200.24.24.0", "5000", 86400);
+    assertTrue(validator.validate(session4).isEmpty());
   }
 
   /**
@@ -328,17 +337,15 @@ class SessionsApiDelegateImplTest {
    */
   @Test
   void createSessionDirtyNetworkDefinitionNotPermitted() {
-    SessionApiException exception =
-            assertThrows(
-                    SessionApiException.class,
-                    () -> api.createSession(session(QosProfile.LOW_LATENCY, "200.24.24.2/24")));
+    CreateSession session = createTestSession(QosProfile.LOW_LATENCY, "200.24.24.2/24");
+    SessionApiException exception = assertThrows(SessionApiException.class, () -> api.createSession(session));
     assertTrue(exception.getMessage().contains("Network specification not valid"));
   }
 
   @Test
-  void createSessionInvalidIPFormat() {
-    CreateSession sessionInvalid = session(QosProfile.LOW_LATENCY, ".00.24.24.0");
-    CreateSession sessionValid   = session(QosProfile.LOW_LATENCY, "200.24.24.0");
+  void createSessionInvalidIpFormat() {
+    CreateSession sessionInvalid = createTestSession(QosProfile.LOW_LATENCY, ".00.24.24.0");
+    CreateSession sessionValid = createTestSession(QosProfile.LOW_LATENCY, "200.24.24.0");
 
     Set<ConstraintViolation<CreateSession>> violations1 = validator.validate(sessionInvalid);
     Set<ConstraintViolation<CreateSession>> violations2 = validator.validate(sessionValid);
@@ -348,48 +355,45 @@ class SessionsApiDelegateImplTest {
     assertTrue(violations2.isEmpty());
   }
 
-  /** Profile THROUGHPUT_L is not permitted, see test configuration (application-test.yml) */
+  /**
+   * Profile THROUGHPUT_L is not permitted, see test configuration (application-test.yml)
+   */
   @Test
   void createSessionQosProfileNotPermitted() {
-    SessionApiException exception =
-            assertThrows(
-                    SessionApiException.class, () -> api.createSession(session(QosProfile.THROUGHPUT_L)));
+    CreateSession session = createTestSession(QosProfile.THROUGHPUT_L);
+    SessionApiException exception = assertThrows(SessionApiException.class, () -> api.createSession(session));
     assertTrue(exception.getMessage().contains("profile unknown"));
   }
 
   @Test
   void createSessionPortsNotValid() {
-    SessionApiException exception =
-            assertThrows(SessionApiException.class, () -> api.createSession(
-                    session(QosProfile.LOW_LATENCY, "200.24.24.3", "1000, 100A", defaultDuration)));
+    CreateSession session = createTestSession(QosProfile.LOW_LATENCY, "200.24.24.3", "1000, 100A", defaultDuration);
+    SessionApiException exception = assertThrows(SessionApiException.class, () -> api.createSession(session));
     assertTrue(exception.getMessage().contains("not valid"));
-    assertSame(exception.getHttpStatus(), HttpStatus.BAD_REQUEST);
+    assertSame(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
   }
 
   @Test
   void createSessionPortsRangeNotValid() {
-    SessionApiException exception =
-            assertThrows(SessionApiException.class, () -> api.createSession(
-                    session(QosProfile.LOW_LATENCY, "200.24.24.3", "9000-8000, 1000", defaultDuration)));
+    CreateSession session = createTestSession(QosProfile.LOW_LATENCY, "200.24.24.3", "9000-8000, 1000", defaultDuration);
+    SessionApiException exception = assertThrows(SessionApiException.class, () -> api.createSession(session));
     assertTrue(exception.getMessage().contains("range not valid"));
-    assertSame(exception.getHttpStatus(), HttpStatus.BAD_REQUEST);
+    assertSame(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
   }
 
   @Test
   void createSessionProtocolNotValid() {
     String wrongValue = "XYZ";
-    IllegalArgumentException exception =
-            assertThrows(IllegalArgumentException.class, () -> api.createSession(
-                    session(Protocol.fromValue(wrongValue), Protocol.ANY)));
+    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> Protocol.fromValue(wrongValue));
     assertTrue(exception.getMessage().contains("Unexpected value"));
   }
 
   @Test
   void deleteUnknownSession() {
-    SessionApiException exception =
-            assertThrows(SessionApiException.class, () -> api.deleteSession(UUID.randomUUID()));
+    UUID uuid = UUID.randomUUID();
+    SessionApiException exception = assertThrows(SessionApiException.class, () -> api.deleteSession(uuid));
     assertTrue(exception.getMessage().contains("not found"));
-    assertSame(exception.getHttpStatus(), HttpStatus.NOT_FOUND);
+    assertSame(HttpStatus.NOT_FOUND, exception.getHttpStatus());
   }
 
   @Test
@@ -400,14 +404,11 @@ class SessionsApiDelegateImplTest {
     stubForBookkeeperBookingRequest();
     stubForBookkeeperDeleteBookingErrorRequest();
 
-    UUID sessionId = createSession(
-            session(QosProfile.LOW_LATENCY, "200.24.24.3", "1000", 1));
+    UUID sessionId = createSession(createTestSession(QosProfile.LOW_LATENCY, "200.24.24.3", "1000", 1));
 
-    SessionApiException exception =
-            assertThrows(SessionApiException.class,
-                    () -> api.deleteSession(sessionId));
+    SessionApiException exception = assertThrows(SessionApiException.class, () -> api.deleteSession(sessionId));
     assertTrue(exception.getMessage().contains("The service is currently not available"));
-    assertSame(exception.getHttpStatus(), HttpStatus.SERVICE_UNAVAILABLE);
+    assertSame(HttpStatus.SERVICE_UNAVAILABLE, exception.getHttpStatus());
 
     stubForBookkeeperDeleteBookingRequest();
     deleteSession(sessionId);
@@ -421,14 +422,11 @@ class SessionsApiDelegateImplTest {
     stubForBookkeeperBookingRequest();
     stubForBookkeeperDeleteBookingRequest();
 
-    UUID sessionId = createSession(
-            session(QosProfile.LOW_LATENCY));
+    UUID sessionId = createSession(createTestSession(QosProfile.LOW_LATENCY));
 
-    SessionApiException exception =
-            assertThrows(SessionApiException.class,
-                    () -> api.deleteSession(sessionId));
+    SessionApiException exception = assertThrows(SessionApiException.class, () -> api.deleteSession(sessionId));
     assertTrue(exception.getMessage().contains("NEF/SCEF returned error"));
-    assertSame(exception.getHttpStatus(), HttpStatus.INTERNAL_SERVER_ERROR);
+    assertSame(HttpStatus.INTERNAL_SERVER_ERROR, exception.getHttpStatus());
   }
 
   @Test
@@ -439,7 +437,7 @@ class SessionsApiDelegateImplTest {
     stubForBookkeeperBookingRequest();
     stubForBookkeeperDeleteBookingRequest();
 
-    UUID sessionId = createSession(session(QosProfile.LOW_LATENCY));
+    UUID sessionId = createSession(createTestSession(QosProfile.LOW_LATENCY));
     sessionFound(sessionId);
     Thread.sleep(defaultDuration * 1000 + 1);
     sessionNotFound(sessionId);
@@ -455,7 +453,7 @@ class SessionsApiDelegateImplTest {
     stubForBookkeeperAvailabilityRequest(true);
     stubForBookkeeperBookingRequest();
     stubForBookkeeperDeleteBookingRequest();
-    ResponseEntity<SessionInfo> response = api.createSession(session(QosProfile.LOW_LATENCY, "10.1.0.0/24"));
+    ResponseEntity<SessionInfo> response = api.createSession(createTestSession(QosProfile.LOW_LATENCY, "10.1.0.0/24"));
     if (bookkeeperEnabled) {
       verify(postRequestedFor(urlPathEqualTo("/checkServiceQualification")));
       verify(postRequestedFor(urlPathEqualTo("/service")));
@@ -467,7 +465,7 @@ class SessionsApiDelegateImplTest {
     assertEquals(HttpStatus.CREATED, response.getStatusCode());
     assertNotNull(response.getBody());
     assertNotNull(response.getBody().getMessages().get(0));
-    assertSame(response.getBody().getMessages().get(0).getSeverity(), Message.SeverityEnum.WARNING);
+    assertSame(Message.SeverityEnum.WARNING, response.getBody().getMessages().get(0).getSeverity());
   }
 
 
@@ -494,8 +492,7 @@ class SessionsApiDelegateImplTest {
     sessionFound(sessionId);
     assertNotNull(response.getBody());
     assertNotNull(patchedResponse.getBody());
-    assertEquals(response.getBody().getStartedAt() + renewSession.getDuration(),
-            patchedResponse.getBody().getExpiresAt());
+    assertEquals(response.getBody().getStartedAt() + renewSession.getDuration(), patchedResponse.getBody().getExpiresAt());
   }
 
   private void sessionFound(UUID sessionId) {
@@ -517,64 +514,43 @@ class SessionsApiDelegateImplTest {
   }
 
   private void sessionNotFound(UUID sessionId) {
-    SessionApiException exception =
-            assertThrows(SessionApiException.class, () -> api.getSession(sessionId));
+    SessionApiException exception = assertThrows(SessionApiException.class, () -> api.getSession(sessionId));
     assertTrue(exception.getMessage().contains("not found"));
   }
 
   private void stubForCreateSubscription() throws JsonProcessingException {
-    stubFor(
-            post("/3gpp-as-session-with-qos/v1/" + asId + "/subscriptions")
-                    .willReturn(
-                            created()
-                                    .withHeader("Content-Type", "application/json")
-                                    .withBody(subscriptionJsonString())));
+    stubFor(post("/3gpp-as-session-with-qos/v1/" + asId + "/subscriptions").willReturn(
+        created().withHeader("Content-Type", "application/json").withBody(subscriptionJsonString())));
   }
 
   private void stubForCreateInvalidSubscription() throws JsonProcessingException {
-    stubFor(
-            post("/3gpp-as-session-with-qos/v1/" + asId + "/subscriptions")
-                    .willReturn(
-                            created()
-                                    .withHeader("Content-Type", "application/json")
-                                    .withBody(subscriptionInvalidJsonString())));
+    stubFor(post("/3gpp-as-session-with-qos/v1/" + asId + "/subscriptions").willReturn(
+        created().withHeader("Content-Type", "application/json").withBody(subscriptionInvalidJsonString())));
   }
 
   private void stubForDeleteSubscription() throws JsonProcessingException {
-    stubFor(
-            delete(
-                    urlPathMatching(
-                            "/3gpp-as-session-with-qos/v1/" + asId + "/subscriptions/([a-zA-Z0-9/-]*)"))
-                    .willReturn(
-                            ok().withHeader("Content-Type", "application/json")
-                                    .withBody(notificationDataJsonString())));
+    stubFor(delete(urlPathMatching("/3gpp-as-session-with-qos/v1/" + asId + "/subscriptions/([a-zA-Z0-9/-]*)")).willReturn(
+        ok().withHeader("Content-Type", "application/json").withBody(notificationDataJsonString())));
   }
 
   private void stubForDeleteErrorSubscription() {
-    stubFor(
-            delete(
-                    urlPathMatching(
-                            "/3gpp-as-session-with-qos/v1/" + asId + "/subscriptions/([a-zA-Z0-9/-]*)"))
-                    .willReturn(
-                            serviceUnavailable()));
+    stubFor(delete(urlPathMatching("/3gpp-as-session-with-qos/v1/" + asId + "/subscriptions/([a-zA-Z0-9/-]*)")).willReturn(
+        serviceUnavailable()));
   }
 
 
   private String subscriptionJsonString() throws JsonProcessingException {
     ObjectMapper objectMapper = new ObjectMapper();
 
-    AsSessionWithQoSSubscription subscription =
-            new AsSessionWithQoSSubscription()
-                    .self("http://foo.com/subscriptions/" + UUID.randomUUID());
+    AsSessionWithQoSSubscription subscription = new AsSessionWithQoSSubscription().self(
+        "https://foo.com/subscriptions/" + UUID.randomUUID());
     return objectMapper.writeValueAsString(subscription);
   }
 
   private String subscriptionInvalidJsonString() throws JsonProcessingException {
     ObjectMapper objectMapper = new ObjectMapper();
 
-    AsSessionWithQoSSubscription subscription =
-            new AsSessionWithQoSSubscription()
-                    .self(null);
+    AsSessionWithQoSSubscription subscription = new AsSessionWithQoSSubscription().self(null);
     return objectMapper.writeValueAsString(subscription);
   }
 
@@ -586,46 +562,24 @@ class SessionsApiDelegateImplTest {
   }
 
   private void stubForBookkeeperAvailabilityRequest(Boolean isSuccessful) throws JsonProcessingException {
-    stubFor(
-            post("/checkServiceQualification")
-                    .willReturn(
-                            created()
-                                    .withHeader("Content-Type", "application/json")
-                                    .withBody(bookkeeperAvailabilityJsonString(isSuccessful))));
+    stubFor(post("/checkServiceQualification").willReturn(
+        created().withHeader("Content-Type", "application/json").withBody(bookkeeperAvailabilityJsonString(isSuccessful))));
   }
 
   private void stubForBookkeeperAvailabilityErrorRequest() {
-    stubFor(
-            post("/checkServiceQualification")
-                    .willReturn(aResponse()
-                            .withFault(Fault.EMPTY_RESPONSE)));
+    stubFor(post("/checkServiceQualification").willReturn(aResponse().withFault(Fault.EMPTY_RESPONSE)));
   }
 
   private void stubForBookkeeperBookingRequest() throws JsonProcessingException {
-    stubFor(
-            post("/service")
-                    .willReturn(
-                            created()
-                                    .withHeader("Content-Type", "application/json")
-                                    .withBody(bookkeeperBookingJsonString())));
+    stubFor(post("/service").willReturn(created().withHeader("Content-Type", "application/json").withBody(bookkeeperBookingJsonString())));
   }
 
   private void stubForBookkeeperDeleteBookingRequest() {
-    stubFor(
-            delete(
-                    urlPathMatching(
-                            "/service/([a-zA-Z0-9/-]*)"))
-                    .willReturn(
-                            noContent()));
+    stubFor(delete(urlPathMatching("/service/([a-zA-Z0-9/-]*)")).willReturn(noContent()));
   }
 
   private void stubForBookkeeperDeleteBookingErrorRequest() {
-    stubFor(
-            delete(
-                    urlPathMatching(
-                            "/service/([a-zA-Z0-9/-]*)"))
-                    .willReturn(aResponse()
-                            .withFault(Fault.EMPTY_RESPONSE)));
+    stubFor(delete(urlPathMatching("/service/([a-zA-Z0-9/-]*)")).willReturn(aResponse().withFault(Fault.EMPTY_RESPONSE)));
   }
 
   private String bookkeeperAvailabilityJsonString(Boolean isSuccessful) throws JsonProcessingException {
@@ -645,38 +599,5 @@ class SessionsApiDelegateImplTest {
     return objectMapper.writeValueAsString(bookingData);
   }
 
-  private CreateSession session(QosProfile qosProfile) {
-    return session(qosProfile, "200.24.24.2");
-  }
 
-  private CreateSession session(QosProfile qosProfile, String asAddr) {
-    return session(qosProfile, asAddr, null, defaultDuration);
-  }
-
-  private CreateSession session(
-          QosProfile qosProfile, String asAddr, String uePorts, Integer duration) {
-    return session(qosProfile, asAddr, uePorts, duration, Protocol.ANY, Protocol.ANY);
-  }
-
-  private CreateSession session(Protocol protocolIn, Protocol protocolOut) {
-    return session(QosProfile.LOW_LATENCY, "200.24.24.2", null, defaultDuration, protocolIn, protocolOut);
-  }
-
-  private CreateSession session(Integer duration) {
-    return session(QosProfile.LOW_LATENCY, "200.24.24.2", null, duration);
-  }
-
-  private CreateSession session(
-          QosProfile qosProfile, String asAddr, String uePorts, Integer duration, Protocol protocolIn, Protocol protocolOut) {
-    return new CreateSession()
-            .ueAddr("172.24.11.4")
-            .asAddr(asAddr)
-            .duration(duration)
-            .uePorts(uePorts)
-            .protocolIn(protocolIn)
-            .protocolOut(protocolOut)
-            .qos(qosProfile)
-            .notificationUri(URI.create("http://example.com"))
-            .notificationAuthToken("12345");
-  }
 }

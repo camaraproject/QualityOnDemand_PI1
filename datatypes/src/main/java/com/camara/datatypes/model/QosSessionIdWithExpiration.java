@@ -22,12 +22,12 @@
 
 package com.camara.datatypes.model;
 
-import lombok.Data;
-
 import java.util.UUID;
+import lombok.Data;
 
 @Data
 public class QosSessionIdWithExpiration {
-    private UUID id;
-    private long expiresAt;
+
+  private UUID id;
+  private long expiresAt;
 }

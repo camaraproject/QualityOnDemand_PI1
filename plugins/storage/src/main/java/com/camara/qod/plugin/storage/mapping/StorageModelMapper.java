@@ -35,12 +35,14 @@ import org.springframework.data.redis.core.ZSetOperations;
  */
 @Mapper(componentModel = "spring")
 public interface StorageModelMapper {
+
   QosSession mapToLibraryQosSession(RedisQosSession redisQosSession);
+
   RedisQosSession mapToRedisQosSession(QosSession qosSession);
 
   @Mappings({
-          @Mapping(target= "id", expression = "java(java.util.UUID.fromString(redisSet.getValue()))"),
-          @Mapping(target= "expiresAt", expression = "java(redisSet.getScore().longValue())")
+      @Mapping(target = "id", expression = "java(java.util.UUID.fromString(redisSet.getValue()))"),
+      @Mapping(target = "expiresAt", expression = "java(redisSet.getScore().longValue())")
   })
   QosSessionIdWithExpiration mapToList(ZSetOperations.TypedTuple<String> redisSet);
 

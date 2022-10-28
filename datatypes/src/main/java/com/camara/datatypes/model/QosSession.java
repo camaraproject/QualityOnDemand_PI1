@@ -27,17 +27,19 @@ import com.camara.qod.api.model.QosProfile;
 import java.net.URI;
 import java.util.UUID;
 import lombok.Data;
+import lombok.Generated;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
-
 
 /**
  * This is the QoS Session subscription resource.
  */
+@Generated
 @Data
 @SuperBuilder
 @NoArgsConstructor
 public class QosSession {
+
   private UUID id;
   private String subscriptionId;
   private long startedAt;

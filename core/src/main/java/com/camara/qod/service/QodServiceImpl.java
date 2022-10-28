@@ -56,11 +56,13 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import javax.annotation.PostConstruct;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -70,11 +72,11 @@ import org.springframework.web.client.HttpStatusCodeException;
  * Service, that supports the implementations of the methods of the sessions' path.
  */
 @Service
+@RequiredArgsConstructor
 public class QodServiceImpl implements QodService {
 
   private static final Logger log = LoggerFactory.getLogger(QodServiceImpl.class);
 
-  private static final String BASE_URL_TEMPLATE = "%s/3gpp-as-session-with-qos/v1";
   private static final int FLOW_ID_UNKNOWN = -1;
   private static final String FLOW_DESCRIPTION_TEMPLATE_IN = "permit in %s from %s to %s";
   private static final String FLOW_DESCRIPTION_TEMPLATE_OUT = "permit out %s from %s to %s";
@@ -93,33 +95,16 @@ public class QodServiceImpl implements QodService {
   private final StorageInterface storage;
   private final AsSessionWithQoSApiSubscriptionLevelPostOperationApi postApi;
   private final AsSessionWithQoSApiSubscriptionLevelDeleteOperationApi deleteApi;
+  private final SessionNotificationsCallbackApi notificationsCallbackApi;
 
   private final BookkeeperService bookkeeperService;
 
-  @Autowired
-  public QodServiceImpl(
-      ModelMapper modelMapper,
-      ScefConfig scefConfig,
-      QodConfig qodConfig,
-      BookkeeperService bookkeeperService,
-      StorageInterface storage) {
-    this.modelMapper = modelMapper;
-    this.scefConfig = scefConfig;
-    this.qodConfig = qodConfig;
-    this.bookkeeperService = bookkeeperService;
-    this.storage = storage;
+  private final ApiClient apiClient;
 
-    ApiClient apiClient =
-        new ApiClient().setBasePath(String.format(BASE_URL_TEMPLATE, scefConfig.getApiRoot()));
-    if (scefConfig.getAuthMethod().equals("basic")) {
-      apiClient.setUsername(scefConfig.getUserName());
-      apiClient.setPassword(scefConfig.getPassword());
-    } else {
-      apiClient.setAccessToken(scefConfig.getToken());
-    }
-    apiClient.setDebugging(scefConfig.getScefDebug());
-    this.postApi = new AsSessionWithQoSApiSubscriptionLevelPostOperationApi(apiClient);
-    this.deleteApi = new AsSessionWithQoSApiSubscriptionLevelDeleteOperationApi(apiClient);
+  @PostConstruct
+  void setupApiClient() {
+    postApi.setApiClient(apiClient);
+    deleteApi.setApiClient(apiClient);
   }
 
   /**
@@ -195,7 +180,7 @@ public class QodServiceImpl implements QodService {
 
     // if multiple ueAddr are not allowed and specified ueAddr is a network segment, return error
     if (!qodConfig.getQosAllowMultipleUeAddr()
-        && session.getUeAddr().matches(qodConfig.getNetworkSegmentRegEx())) {
+        && session.getUeAddr().matches(QodConfig.NETWORK_SEGMENT_REGEX)) {
       throw new SessionApiException(
           HttpStatus.BAD_REQUEST,
           "A network segment for ueAddr is not allowed in the current configuration: "
@@ -353,7 +338,7 @@ public class QodServiceImpl implements QodService {
 
   @Override
   @Async
-  public void handleQosNotification(
+  public CompletableFuture<Void> handleQosNotification(
       @NotBlank String subscriptionId, @NotNull UserPlaneEvent event) {
     Optional<QosSession> sessionOptional = storage.findBySubscriptionId(subscriptionId);
     // TODO implement proper event model. For now only SESSION_TERMINATED event is supported
@@ -363,29 +348,31 @@ public class QodServiceImpl implements QodService {
       notifySession(sessionInfo, SessionEvent.SESSION_TERMINATED);
 
       if (session.getNotificationUri() != null && session.getNotificationAuthToken() != null) {
-        com.camara.qod.api.notifications.ApiClient apiClient =
+        com.camara.qod.api.notifications.ApiClient apiNotificationClient =
             new com.camara.qod.api.notifications.ApiClient()
                 .setBasePath(session.getNotificationUri().toString());
-        apiClient.setApiKey(session.getNotificationAuthToken());
-        SessionNotificationsCallbackApi callback = new SessionNotificationsCallbackApi(apiClient);
-        callback.postNotification(
+        apiNotificationClient.setApiKey(session.getNotificationAuthToken());
+        notificationsCallbackApi.setApiClient(apiNotificationClient);
+        notificationsCallbackApi.postNotification(
             new Notification().sessionId(session.getId()).event(SessionEvent.SESSION_TERMINATED));
       }
     }
+    return CompletableFuture.completedFuture(null);
   }
 
   @Override
   @Async("taskScheduler") // @EnableScheduling and @EnableAsync both define a task executor, thus we
   // need to specify which one to use
-  public void notifySession(@NotNull SessionInfo qosSession, @NotNull SessionEvent event) {
+  public CompletableFuture<Void> notifySession(@NotNull SessionInfo qosSession, @NotNull SessionEvent event) {
     if (qosSession.getNotificationUri() != null && qosSession.getNotificationAuthToken() != null) {
-      com.camara.qod.api.notifications.ApiClient apiClient =
+      com.camara.qod.api.notifications.ApiClient apiNotificationClient =
           new com.camara.qod.api.notifications.ApiClient()
               .setBasePath(qosSession.getNotificationUri().toString());
-      apiClient.setApiKey(qosSession.getNotificationAuthToken());
-      SessionNotificationsCallbackApi callback = new SessionNotificationsCallbackApi(apiClient);
-      callback.postNotification(new Notification().sessionId(qosSession.getId()).event(event));
+      apiNotificationClient.setApiKey(qosSession.getNotificationAuthToken());
+      notificationsCallbackApi.setApiClient(apiNotificationClient);
+      notificationsCallbackApi.postNotification(new Notification().sessionId(qosSession.getId()).event(event));
     }
+    return CompletableFuture.completedFuture(null);
   }
 
   private UUID createBooking(UUID uuid, long now, long expiresAt, CreateSession session) {
@@ -589,11 +576,10 @@ public class QodServiceImpl implements QodService {
   }
 
   /**
-   * Execute the check for QoS availability
+   * Execute the check for QoS availability.
    *
    * @param ueId UE identifier
-   * @return Http response with a list of available QoS profiles. Only available on the
-   * Throughput-API.
+   * @return Http response with a list of available QoS profiles. Only available on the Throughput-API.
    */
   public CheckQosAvailabilityResponse checkQosAvailability(@NotNull String ueId) {
     if (scefConfig.getFlowIdThroughputS() == FLOW_ID_UNKNOWN) {

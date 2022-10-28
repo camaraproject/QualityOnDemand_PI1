@@ -38,10 +38,10 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Component;
 
-@Component(value="Storage")
+@Component(value = "Storage")
 @RequiredArgsConstructor
 public class StorageImpl implements StorageInterface {
-  
+
   private final RedisConfig redisConfig;
   private final RedisTemplate<String, String> redisTemplate;
   private final StorageModelMapper storageModelMapper;
@@ -49,32 +49,32 @@ public class StorageImpl implements StorageInterface {
 
   @Override
   public RedisQosSession saveSession(long startedAt,
-                                     long expiresAt,
-                                     UUID uuid,
-                                     CreateSession session,
-                                     String subscriptionId,
-                                     UUID bookkeeperId) {
+      long expiresAt,
+      UUID uuid,
+      CreateSession session,
+      String subscriptionId,
+      UUID bookkeeperId) {
 
     RedisQosSession redisQosSession =
-            RedisQosSession.builder()
-                    .id(uuid)
-                    .startedAt(startedAt)
-                    .expiresAt(expiresAt)
-                    .duration(session.getDuration())
-                    .ueAddr(session.getUeAddr())
-                    .asAddr(session.getAsAddr())
-                    .uePorts(session.getUePorts())
-                    .asPorts(session.getAsPorts())
-                    .protocolIn(session.getProtocolIn())
-                    .protocolOut(session.getProtocolOut())
-                    .qos(session.getQos())
-                    .subscriptionId(subscriptionId)
-                    .notificationUri(session.getNotificationUri())
-                    .notificationAuthToken(session.getNotificationAuthToken())
-                    .expirationLockUntil(0) // Expiration Lock is initialised with 0, gets updated when an
-                    // ExpiredSessionTask is created
-                    .bookkeeperId(bookkeeperId)
-                    .build();
+        RedisQosSession.builder()
+            .id(uuid)
+            .startedAt(startedAt)
+            .expiresAt(expiresAt)
+            .duration(session.getDuration())
+            .ueAddr(session.getUeAddr())
+            .asAddr(session.getAsAddr())
+            .uePorts(session.getUePorts())
+            .asPorts(session.getAsPorts())
+            .protocolIn(session.getProtocolIn())
+            .protocolOut(session.getProtocolOut())
+            .qos(session.getQos())
+            .subscriptionId(subscriptionId)
+            .notificationUri(session.getNotificationUri())
+            .notificationAuthToken(session.getNotificationAuthToken())
+            .expirationLockUntil(0) // Expiration Lock is initialised with 0, gets updated when an
+            // ExpiredSessionTask is created
+            .bookkeeperId(bookkeeperId)
+            .build();
     sessionRepo.save(redisQosSession);
 
     return redisQosSession;
@@ -88,8 +88,8 @@ public class StorageImpl implements StorageInterface {
   @Override
   public Optional<QosSession> getSession(UUID id) {
     return sessionRepo
-            .findById(id)
-            .map(storageModelMapper::mapToLibraryQosSession);
+        .findById(id)
+        .map(storageModelMapper::mapToLibraryQosSession);
   }
 
   @Override
@@ -100,37 +100,38 @@ public class StorageImpl implements StorageInterface {
   @Override
   public void addExpiration(UUID id, long expiresAt) {
     redisTemplate
-            .opsForZSet()
-            .add(
-                    redisConfig.getQosSessionExpirationListName(),
-                    id.toString(),
-                    expiresAt);
+        .opsForZSet()
+        .add(
+            redisConfig.getQosSessionExpirationListName(),
+            id.toString(),
+            expiresAt);
   }
 
   @Override
   public void removeExpiration(UUID id) {
     redisTemplate
-            .opsForZSet()
-            .remove(redisConfig.getQosSessionExpirationListName(), id.toString());
+        .opsForZSet()
+        .remove(redisConfig.getQosSessionExpirationListName(), id.toString());
   }
 
   @Override
   public List<QosSessionIdWithExpiration> getSessionsThatExpireUntil(double expirationTime) {
     Set<ZSetOperations.TypedTuple<String>> qosSessionExpirationList =
-            redisTemplate
-                    .opsForZSet()
-                    .rangeByScoreWithScores(
-                            redisConfig.getQosSessionExpirationListName(), 0, expirationTime);
-    return qosSessionExpirationList != null ? qosSessionExpirationList.stream().map(storageModelMapper::mapToList).collect(Collectors.toList()) : null;
+        redisTemplate
+            .opsForZSet()
+            .rangeByScoreWithScores(
+                redisConfig.getQosSessionExpirationListName(), 0, expirationTime);
+    return qosSessionExpirationList != null ? qosSessionExpirationList.stream().map(storageModelMapper::mapToList)
+        .collect(Collectors.toList()) : null;
   }
 
   @Override
   public List<QosSession> findByUeAddr(String ueAddr) {
     return sessionRepo
-            .findByUeAddr(ueAddr)
-            .stream()
-            .map(storageModelMapper::mapToLibraryQosSession)
-            .collect(Collectors.toList());
+        .findByUeAddr(ueAddr)
+        .stream()
+        .map(storageModelMapper::mapToLibraryQosSession)
+        .collect(Collectors.toList());
   }
 
   @Override

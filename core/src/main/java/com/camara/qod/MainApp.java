@@ -22,25 +22,31 @@
 
 package com.camara.qod;
 
+import lombok.Generated;
+import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.EnableSchedulerLock;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
+@Slf4j
 @SpringBootApplication
 @ComponentScan({"com.camara.qod", "com.camara.scef"})
 @EnableAsync
 @EnableScheduling
 @EnableSchedulerLock(defaultLockAtMostFor = "1m")
+@Generated
 public class MainApp {
 
-  static final Logger log = LoggerFactory.getLogger(MainApp.class);
-
+  /**
+   * The main Method.
+   *
+   * @param args the args for the main method
+   */
   public static void main(String[] args) {
+
     log.info("Starting qod-api-service with {} args.", args.length);
     SpringApplication.run(MainApp.class, args);
   }

@@ -25,46 +25,48 @@ package com.camara.qod.plugin.storage;
 import com.camara.datatypes.model.QosSession;
 import com.camara.datatypes.model.QosSessionIdWithExpiration;
 import com.camara.qod.api.model.CreateSession;
-import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 public interface StorageInterface {
 
-    /**
-     * Save QoS session.
-     *
-     * @param startedAt - timestamp of session begin
-     * @param expiresAt - timestamp of automatic session termination
-     * @param uuid - id of session
-     * @param session - information to new session
-     * @param subscriptionId - network QoS subscription ID
-     * @return created QoS session
-     */
-    QosSession saveSession(long startedAt,
-                           long expiresAt,
-                           UUID uuid,
-                           CreateSession session,
-                           String subscriptionId,
-                           UUID bookkeeperId);
+  /**
+   * Save QoS session.
+   *
+   * @param startedAt      - timestamp of session begin
+   * @param expiresAt      - timestamp of automatic session termination
+   * @param uuid           - id of session
+   * @param session        - information to new session
+   * @param subscriptionId - network QoS subscription ID
+   * @return created QoS session
+   */
+  QosSession saveSession(long startedAt,
+      long expiresAt,
+      UUID uuid,
+      CreateSession session,
+      String subscriptionId,
+      UUID bookkeeperId);
 
-    QosSession saveSession(QosSession qosSession);
+  QosSession saveSession(QosSession qosSession);
 
-    Optional<QosSession> getSession(UUID id);
-    void deleteSession(UUID id);
-    void addExpiration(UUID id, long expiresAt);
-    void removeExpiration(UUID id);
+  Optional<QosSession> getSession(UUID id);
 
-    /**
-     * Get QoS sessions with smaller expire time than the given time
-     * @param expirationTime timestamp
-     * @return list with sessions, that expire within the given time
-     */
-    List<QosSessionIdWithExpiration> getSessionsThatExpireUntil(double expirationTime);
+  void deleteSession(UUID id);
 
-    List<QosSession> findByUeAddr(String ueAddr);
-    Optional<QosSession> findBySubscriptionId(String subscriptionId);
+  void addExpiration(UUID id, long expiresAt);
+
+  void removeExpiration(UUID id);
+
+  /**
+   * Get QoS sessions with smaller expire time than the given time.
+   *
+   * @param expirationTime timestamp
+   * @return list with sessions, that expire within the given time
+   */
+  List<QosSessionIdWithExpiration> getSessionsThatExpireUntil(double expirationTime);
+
+  List<QosSession> findByUeAddr(String ueAddr);
+
+  Optional<QosSession> findBySubscriptionId(String subscriptionId);
 }

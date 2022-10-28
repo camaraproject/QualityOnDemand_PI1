@@ -22,14 +22,21 @@
 
 package com.camara.qod.service;
 
-import com.camara.qod.api.model.*;
+import com.camara.qod.api.model.CheckQosAvailabilityResponse;
+import com.camara.qod.api.model.CreateSession;
+import com.camara.qod.api.model.RenewSession;
+import com.camara.qod.api.model.SessionEvent;
+import com.camara.qod.api.model.SessionInfo;
 import com.camara.scef.api.model.UserPlaneEvent;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import org.springframework.scheduling.annotation.Async;
 
-/** Service interface, that is used for the implementations of the methods of the sessions' path. */
+/**
+ * Service interface, that is used for the implementations of the methods of the sessions' path.
+ */
 public interface QodService {
 
   SessionInfo renewSession(@NotNull UUID id, @NotNull RenewSession session);
@@ -41,10 +48,10 @@ public interface QodService {
   SessionInfo deleteSession(@NotNull UUID sessionId);
 
   @Async
-  void handleQosNotification(@NotBlank String subscriptionId, @NotNull UserPlaneEvent event);
+  CompletableFuture<Void> handleQosNotification(@NotBlank String subscriptionId, @NotNull UserPlaneEvent event);
 
   @Async
-  void notifySession(@NotNull SessionInfo qosSession, @NotNull SessionEvent event);
+  CompletableFuture<Void> notifySession(@NotNull SessionInfo qosSession, @NotNull SessionEvent event);
 
   CheckQosAvailabilityResponse checkQosAvailability(@NotNull String ueId);
 }
