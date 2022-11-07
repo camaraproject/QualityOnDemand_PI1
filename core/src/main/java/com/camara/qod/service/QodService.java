@@ -22,9 +22,7 @@
 
 package com.camara.qod.service;
 
-import com.camara.qod.api.model.CheckQosAvailabilityResponse;
 import com.camara.qod.api.model.CreateSession;
-import com.camara.qod.api.model.RenewSession;
 import com.camara.qod.api.model.SessionEvent;
 import com.camara.qod.api.model.SessionInfo;
 import com.camara.scef.api.model.UserPlaneEvent;
@@ -39,19 +37,31 @@ import org.springframework.scheduling.annotation.Async;
  */
 public interface QodService {
 
-  SessionInfo renewSession(@NotNull UUID id, @NotNull RenewSession session);
-
+  /**
+   * Creates & saves session in database.
+   */
   SessionInfo createSession(@NotNull CreateSession session);
 
+  /**
+   * Finds existing session by id.
+   */
   SessionInfo getSession(@NotNull UUID sessionId);
 
+  /**
+   * Finds & removes session from database.
+   */
   SessionInfo deleteSession(@NotNull UUID sessionId);
 
+  /**
+   * Handles the QoS notification.
+   */
   @Async
   CompletableFuture<Void> handleQosNotification(@NotBlank String subscriptionId, @NotNull UserPlaneEvent event);
 
+  /**
+   * Takes care of expired sessions.
+   */
   @Async
   CompletableFuture<Void> notifySession(@NotNull SessionInfo qosSession, @NotNull SessionEvent event);
 
-  CheckQosAvailabilityResponse checkQosAvailability(@NotNull String ueId);
 }

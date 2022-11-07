@@ -23,20 +23,12 @@
 package com.camara.qod.service;
 
 import com.camara.datatypes.model.QosSession;
-import com.camara.qod.api.model.CheckQosAvailabilityResponse;
-import com.camara.qod.api.model.CheckQosAvailabilityResponseQosProfiles;
-import com.camara.qod.api.model.CreateSession;
-import com.camara.qod.api.model.Message;
-import com.camara.qod.api.model.Notification;
-import com.camara.qod.api.model.Protocol;
-import com.camara.qod.api.model.QosProfile;
-import com.camara.qod.api.model.RenewSession;
-import com.camara.qod.api.model.SessionEvent;
-import com.camara.qod.api.model.SessionInfo;
+import com.camara.qod.api.model.*;
 import com.camara.qod.api.notifications.SessionNotificationsCallbackApi;
 import com.camara.qod.commons.Util;
 import com.camara.qod.config.QodConfig;
 import com.camara.qod.config.ScefConfig;
+import com.camara.qod.controller.ExceptionHandlerAdvice.ApplicationConstants;
 import com.camara.qod.controller.SessionApiException;
 import com.camara.qod.mapping.ModelMapper;
 import com.camara.qod.plugin.storage.StorageInterface;
@@ -46,12 +38,11 @@ import com.camara.scef.api.AsSessionWithQoSApiSubscriptionLevelPostOperationApi;
 import com.camara.scef.api.model.AsSessionWithQoSSubscription;
 import com.camara.scef.api.model.FlowInfo;
 import com.camara.scef.api.model.UserPlaneEvent;
-import com.qod.model.BookkeeperCreateSession;
 import com.qod.service.BookkeeperService;
 import inet.ipaddr.IPAddressString;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -78,8 +69,8 @@ public class QodServiceImpl implements QodService {
   private static final Logger log = LoggerFactory.getLogger(QodServiceImpl.class);
 
   private static final int FLOW_ID_UNKNOWN = -1;
-  private static final String FLOW_DESCRIPTION_TEMPLATE_IN = "permit in %s from %s to %s";
-  private static final String FLOW_DESCRIPTION_TEMPLATE_OUT = "permit out %s from %s to %s";
+  private static final String FLOW_DESCRIPTION_TEMPLATE_IN = "permit from %s to %s";
+  private static final String FLOW_DESCRIPTION_TEMPLATE_OUT = "permit from %s to %s";
   private static final String[] PRIVATE_NETWORKS = {
       "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"
   };
@@ -108,97 +99,41 @@ public class QodServiceImpl implements QodService {
   }
 
   /**
-   * Update certain attributes only included in UpdateSession class.
+   * @see QodService#createSession(CreateSession)
    */
-  @Override
-  public SessionInfo renewSession(UUID id, RenewSession renewSession) {
-    QosSession qosSession =
-        storage.getSession(id)
-            .orElseThrow(
-                () ->
-                    new SessionApiException(
-                        HttpStatus.NOT_FOUND, "QoD session not found for session ID: " + id));
-
-    // Assert that the session is not planned to be deleted
-    if (Instant.ofEpochSecond(
-            qosSession.getExpiresAt() - qodConfig.getQosExpirationTimeBeforeHandling())
-        .compareTo(Instant.now()) < 0) {
-      log.debug("The session " + qosSession.getId()
-          + "is planned to be executed, therefore it is not updated");
-      throw new SessionApiException(HttpStatus.CONFLICT,
-          "The session cannot be updated, it will soon expire.");
-    }
-
-    if (renewSession.getDuration() != null) {
-      // Assert that startsAt + duration > now
-      if (Instant.ofEpochSecond(renewSession.getDuration() + qosSession.getStartedAt())
-          .compareTo(Instant.now()) <= 0) {
-        log.debug(
-            "The requested duration would cause the session "
-                + qosSession.getId()
-                + " to expire, therefore it is not updated.");
-        throw new SessionApiException(
-            HttpStatus.CONFLICT,
-            "The requested duration would cause the session "
-                + qosSession.getId()
-                + " to expire, please delete the session if it is not needed anymore.");
-      }
-
-      Boolean updateResult;
-
-      try {
-        updateResult =
-            bookkeeperService.changeBookingTime(
-                id,
-                Date.from(
-                    Instant.ofEpochSecond(
-                        qosSession.getStartedAt() + renewSession.getDuration())));
-      } catch (Exception e) {
-        throw new SessionApiException(
-            HttpStatus.SERVICE_UNAVAILABLE, "The service is currently not available");
-      }
-
-      if (!updateResult) {
-        throw new SessionApiException(
-            HttpStatus.CONFLICT, "Requested QoS session is currently not available");
-      }
-
-      qosSession.setDuration(renewSession.getDuration());
-      qosSession.setExpiresAt(qosSession.getStartedAt() + renewSession.getDuration());
-
-      storage.saveSession(qosSession);
-      storage.addExpiration(id, qosSession.getExpiresAt());
-    }
-    return modelMapper.map(qosSession);
-  }
-
   @Override
   public SessionInfo createSession(@NotNull CreateSession session) {
     QosProfile qosProfile = session.getQos();
     final int flowId = getFlowId(qosProfile);
     List<Message> messages = new ArrayList<>();
 
-    // if multiple ueAddr are not allowed and specified ueAddr is a network segment, return error
+    // if multiple ueId.Ipv4Addr are not allowed and specified ueId.Ipv4Addr is a network segment, return error
     if (!qodConfig.getQosAllowMultipleUeAddr()
-        && session.getUeAddr().matches(QodConfig.NETWORK_SEGMENT_REGEX)) {
+            && session.getUeId().getIpv4addr().matches(QodConfig.NETWORK_SEGMENT_REGEX)) {
       throw new SessionApiException(
-          HttpStatus.BAD_REQUEST,
-          "A network segment for ueAddr is not allowed in the current configuration: "
-              + session.getUeAddr()
-              + " is not allowed, but "
-              + session.getUeAddr().substring(0, session.getUeAddr().indexOf("/"))
-              + " is allowed.");
+              HttpStatus.BAD_REQUEST,
+              "A network segment for UeIdIpv4Addr is not allowed in the current configuration: "
+                      + session.getUeId().getIpv4addr()
+                      + " is not allowed, but "
+                      + session.getUeId().getIpv4addr().substring(0, session.getUeId().getIpv4addr().indexOf("/"))
+                      + " is allowed.", ApplicationConstants.NOT_ALLOWED);
+    }
+
+    // Validate if ipv4 address is given
+    if (session.getUeId().getIpv4addr()==null) {
+      throw new SessionApiException(HttpStatus.BAD_REQUEST, "Validation failed for parameter 'ueId.ipv4addr'", ApplicationConstants.PARAMETER_MISSING);
+    }
+    if (session.getAsId().getIpv4addr()==null) {
+      throw new SessionApiException(HttpStatus.BAD_REQUEST, "Validation failed for parameter 'asId.ipv4addr'", ApplicationConstants.PARAMETER_MISSING);
     }
 
     // Check if already exists
     Optional<QosSession> actual =
         checkExistingSessions(
-            session.getUeAddr(),
-            session.getAsAddr(),
-            session.getUePorts(),
-            session.getAsPorts(),
-            session.getProtocolIn(),
-            session.getProtocolOut());
+                session.getUeId().getIpv4addr(),
+                session.getAsId().getIpv4addr(),
+                session.getUePorts(),
+                session.getAsPorts());
     if (actual.isPresent()) {
       QosSession s = actual.get();
       Instant expirationTime = Instant.ofEpochSecond(s.getExpiresAt());
@@ -207,14 +142,14 @@ public class QodServiceImpl implements QodService {
               ? maskString(s.getId().toString())
               : s.getId().toString();
       throw new SessionApiException(
-          HttpStatus.CONFLICT,
-          "Found session " + sessionId + " already active until " + expirationTime);
+              HttpStatus.CONFLICT,
+              "Found session " + sessionId + " already active until " + expirationTime);
     }
 
-    // Check if asAddr is could be in private network
+    // Check if asId.Ipv4Addr could be in private network
     for (String privateNetwork : PRIVATE_NETWORKS) {
       IPAddressString pn = new IPAddressString(privateNetwork);
-      if (pn.contains(new IPAddressString(session.getAsAddr()))) {
+      if (pn.contains(new IPAddressString(session.getAsId().getIpv4addr()))) {
         Message warning = new Message();
         String description = String.format(
             "AS address range is in private network (%s). Some features may not work properly.",
@@ -228,23 +163,21 @@ public class QodServiceImpl implements QodService {
     }
 
     String qosReference = getReference(qosProfile);
-    String protocolIn = getProtocol(session.getProtocolIn());
-    String protocolOut = getProtocol(session.getProtocolOut());
 
-    String asAddr = session.getAsAddr();
-    String ueAddr = session.getUeAddr();
+    String asAddr = session.getAsId().getIpv4addr();
+    String ueAddr = session.getUeId().getIpv4addr();
 
-    if (session.getAsPorts() != null) {
+    if (!isPortsSpecNotDefined(session.getAsPorts())) {
       // Validate port ranges generally beside the check in checkExistingSessions
       checkPortRange(session.getAsPorts());
       // AS port present. Append it to IP
-      asAddr += " " + session.getAsPorts();
+      asAddr += " " + convertPorts(session.getAsPorts());
     }
-    if (session.getUePorts() != null) {
+    if (!isPortsSpecNotDefined(session.getUePorts())) {
       // Validate port ranges generally beside the check in checkExistingSessions
       checkPortRange(session.getUePorts());
       // UE port present. Append it to IP
-      ueAddr += " " + session.getUePorts();
+      ueAddr += " " + convertPorts(session.getUePorts());
     }
 
     // UUID for session
@@ -259,10 +192,10 @@ public class QodServiceImpl implements QodService {
     UUID bookkeeperId =
         qodConfig.getQosBookkeeperEnabled() ? createBooking(uuid, now, expiresAt, session) : null;
 
-    FlowInfo flowInfo = createFlowInfo(ueAddr, asAddr, protocolIn, protocolOut, flowId);
+    FlowInfo flowInfo = createFlowInfo(ueAddr, asAddr, flowId);
     AsSessionWithQoSSubscription qosSubscription =
         createQosSubscription(
-            session.getUeAddr(), flowInfo, qosReference, scefConfig.getSupportedFeatures());
+            session.getUeId().getIpv4addr(), flowInfo, qosReference, scefConfig.getSupportedFeatures());
     AsSessionWithQoSSubscription response =
         postApi.scsAsIdSubscriptionsPost(scefConfig.getScsAsId(), qosSubscription);
     String subscriptionId = Util.subscriptionId(response.getSelf());
@@ -286,6 +219,9 @@ public class QodServiceImpl implements QodService {
     return ret;
   }
 
+  /**
+   * @see QodService#getSession(UUID)
+   */
   @Override
   public SessionInfo getSession(@NotNull UUID sessionId) {
     return storage.getSession(sessionId)
@@ -296,6 +232,9 @@ public class QodServiceImpl implements QodService {
                     HttpStatus.NOT_FOUND, "QoD session not found for session ID: " + sessionId));
   }
 
+  /**
+   * @see QodService#deleteSession(UUID)
+   */
   @Override
   public SessionInfo deleteSession(@NotNull UUID sessionId) {
     QosSession qosSession = storage.getSession(sessionId)
@@ -320,7 +259,6 @@ public class QodServiceImpl implements QodService {
     storage.removeExpiration(sessionId);
 
     if (qosSession.getSubscriptionId() != null) {
-      // TODO properly process NEF/SCEF error codes
       try {
         deleteApi.scsAsIdSubscriptionsSubscriptionIdDeleteWithHttpInfo(
             scefConfig.getScsAsId(), qosSession.getSubscriptionId());
@@ -336,12 +274,14 @@ public class QodServiceImpl implements QodService {
     return modelMapper.map(qosSession);
   }
 
+  /**
+   * @see QodService#handleQosNotification(String, UserPlaneEvent)
+   */
   @Override
   @Async
   public CompletableFuture<Void> handleQosNotification(
       @NotBlank String subscriptionId, @NotNull UserPlaneEvent event) {
     Optional<QosSession> sessionOptional = storage.findBySubscriptionId(subscriptionId);
-    // TODO implement proper event model. For now only SESSION_TERMINATED event is supported
     if (sessionOptional.isPresent() && event.equals(UserPlaneEvent.SESSION_TERMINATION)) {
       QosSession session = sessionOptional.get();
       SessionInfo sessionInfo = deleteSession(session.getId());
@@ -360,9 +300,11 @@ public class QodServiceImpl implements QodService {
     return CompletableFuture.completedFuture(null);
   }
 
+  /**
+   * @see QodService#notifySession(SessionInfo, SessionEvent)
+   */
   @Override
-  @Async("taskScheduler") // @EnableScheduling and @EnableAsync both define a task executor, thus we
-  // need to specify which one to use
+  @Async("taskScheduler")
   public CompletableFuture<Void> notifySession(@NotNull SessionInfo qosSession, @NotNull SessionEvent event) {
     if (qosSession.getNotificationUri() != null && qosSession.getNotificationAuthToken() != null) {
       com.camara.qod.api.notifications.ApiClient apiNotificationClient =
@@ -375,11 +317,18 @@ public class QodServiceImpl implements QodService {
     return CompletableFuture.completedFuture(null);
   }
 
+  /**
+   * Checks if the requested size is available, if so it is booked.
+   */
   private UUID createBooking(UUID uuid, long now, long expiresAt, CreateSession session) {
     Boolean bookkeeperResult;
 
-    // TEMP SOLUTION
-    BookkeeperCreateSession bookkprSession = modelMapper.map(session);
+    com.qod.model.QosProfile bookkprProfile = switch (session.getQos()) {
+      case E -> com.qod.model.QosProfile.E;
+      case L -> com.qod.model.QosProfile.L;
+      case S -> com.qod.model.QosProfile.S;
+      default -> com.qod.model.QosProfile.M;
+    };
 
     try {
       bookkeeperResult =
@@ -387,7 +336,7 @@ public class QodServiceImpl implements QodService {
               uuid,
               Date.from(Instant.ofEpochSecond(now)),
               Date.from(Instant.ofEpochSecond(expiresAt)),
-              bookkprSession);
+              bookkprProfile);
     } catch (Exception e) {
       throw new SessionApiException(
           HttpStatus.SERVICE_UNAVAILABLE, "The service is currently not available");
@@ -402,76 +351,112 @@ public class QodServiceImpl implements QodService {
         uuid,
         Date.from(Instant.ofEpochSecond(now)),
         Date.from(Instant.ofEpochSecond(expiresAt)),
-        bookkprSession);
+        bookkprProfile);
   }
 
+  /**
+   * Convert PortsSpec to NEF format.
+   */
+  private static String convertPorts(PortsSpec ports) {
+    StringBuilder res = new StringBuilder();
+    if(ports.getPorts() != null){
+      for(var port : ports.getPorts()){
+        res.append(port).append(",");
+      }
+    }
+    if(ports.getRanges() != null){
+      for(var range : ports.getRanges()){
+        res.append(range.getFrom()).append("-").append(range.getTo()).append(",");
+      }
+    }
+    return res.deleteCharAt(res.length()-1).toString();
+  }
+
+  /**
+   * @return flow id from resources.
+   */
   private int getFlowId(@NotNull QosProfile profile) {
     int flowId = switch (profile) {
-      case LOW_LATENCY -> scefConfig.getFlowIdLowLatency();
-      case THROUGHPUT_S -> scefConfig.getFlowIdThroughputS();
-      case THROUGHPUT_M -> scefConfig.getFlowIdThroughputM();
-      case THROUGHPUT_L -> scefConfig.getFlowIdThroughputL();
+      case E -> scefConfig.getFlowIdQosE();
+      case S -> scefConfig.getFlowIdQosS();
+      case M -> scefConfig.getFlowIdQosM();
+      case L -> scefConfig.getFlowIdQosL();
     };
 
     if (flowId == FLOW_ID_UNKNOWN) {
-      throw new SessionApiException(HttpStatus.BAD_REQUEST, "QoS profile unknown or disabled");
+      throw new SessionApiException(HttpStatus.BAD_REQUEST, "QoS profile unknown or disabled",
+          ApplicationConstants.VALIDATION_FAILED);
     }
     return flowId;
   }
 
+  /**
+   * Looks for existing sessions with the same ipv4 address,
+   * if existing network or ports intersect with the given parameters, returns non-empty QosSession.
+   */
   private Optional<QosSession> checkExistingSessions(
-      String ueAddr,
-      String asAddr,
-      String uePorts,
-      String asPorts,
-      Protocol inProtocol,
-      Protocol outProtocol) {
-    List<QosSession> qosSessions = storage.findByUeAddr(ueAddr);
+          String ueAddr,
+          String asAddr,
+          PortsSpec uePorts,
+          PortsSpec asPorts) {
+
+    List<QosSession> qosSessions = storage.findByUeIpv4addr(ueAddr);
 
     return qosSessions.stream()
-        .filter(qosSession -> checkNetworkIntersection(asAddr, qosSession.getAsAddr()))
+        .filter(qosSession -> checkNetworkIntersection(asAddr, qosSession.getAsId().getIpv4addr()))
         .filter(
             qosSession ->
                 checkPortIntersection(
-                    uePorts == null ? "0-65535" : uePorts,
-                    qosSession.getUePorts() == null ? "0-65535" : qosSession.getUePorts()))
+                    isPortsSpecNotDefined(uePorts) ? new PortsSpec().ranges(Collections.singletonList(new PortsSpecRanges().from(0).to(65535))) : uePorts,
+                        (isPortsSpecNotDefined(qosSession.getUePorts())) ? new PortsSpec().ranges(Collections.singletonList(new PortsSpecRanges().from(0).to(65535))) : qosSession.getUePorts()))
         .filter(
             qosSession ->
                 checkPortIntersection(
-                    asPorts == null ? "0-65535" : asPorts,
-                    qosSession.getAsPorts() == null ? "0-65535" : qosSession.getAsPorts()))
-        .filter(qosSession -> checkProtocolIntersection(inProtocol, qosSession.getProtocolIn()))
-        .filter(qosSession -> checkProtocolIntersection(outProtocol, qosSession.getProtocolOut()))
+                    isPortsSpecNotDefined(asPorts) ? new PortsSpec().ranges(Collections.singletonList(new PortsSpecRanges().from(0).to(65535))) : asPorts,
+                        (isPortsSpecNotDefined(qosSession.getAsPorts())) ? new PortsSpec().ranges(Collections.singletonList(new PortsSpecRanges().from(0).to(65535))) : qosSession.getAsPorts()))
         .findFirst();
   }
 
+  /**
+   * @return true if there are no ports defined.
+   */
+  private static boolean isPortsSpecNotDefined(PortsSpec ports) {
+    if(ports == null) return true;
+    return ports.getPorts() == null && ports.getRanges() == null;
+  }
+
+  /**
+   * @return reference from resources.
+   */
   private String getReference(QosProfile profile) {
     return switch (profile) {
-      case LOW_LATENCY -> qodConfig.getQosReferenceLowLatency();
-      case THROUGHPUT_S -> qodConfig.getQosReferenceThroughputS();
-      case THROUGHPUT_M -> qodConfig.getQosReferenceThroughputM();
-      case THROUGHPUT_L -> qodConfig.getQosReferenceThroughputL();
+      case E -> qodConfig.getQosReferenceQosE();
+      case S -> qodConfig.getQosReferenceQosS();
+      case M -> qodConfig.getQosReferenceQosM();
+      case L -> qodConfig.getQosReferenceQosL();
     };
   }
 
-  private String getProtocol(Protocol protocol) {
-    return switch (protocol) {
-      case ANY -> "ip";
-      case TCP -> "6";
-      case UDP -> "17";
-    };
-  }
-
+  /**
+   * Creates flow info based on:
+   * @param ueAddr - UE ipv4 address + UE ports
+   * @param asAddr - AS ipv4 address + AS ports
+   * @param flowId
+   * @see QodServiceImpl#getFlowId
+   */
   private FlowInfo createFlowInfo(
-      String ueAddr, String asAddr, String protocolIn, String protocolOut, Integer flowId) {
+      String ueAddr, String asAddr, Integer flowId) {
     return new FlowInfo()
         .flowId(flowId)
         .addFlowDescriptionsItem(
-            String.format(FLOW_DESCRIPTION_TEMPLATE_IN, protocolIn, ueAddr, asAddr))
+            String.format(FLOW_DESCRIPTION_TEMPLATE_IN, ueAddr, asAddr))
         .addFlowDescriptionsItem(
-            String.format(FLOW_DESCRIPTION_TEMPLATE_OUT, protocolOut, asAddr, ueAddr));
+            String.format(FLOW_DESCRIPTION_TEMPLATE_OUT, asAddr, ueAddr));
   }
 
+  /**
+   * Creates Qos Subscription.
+   */
   private AsSessionWithQoSSubscription createQosSubscription(
       String ueAddr, FlowInfo flowInfo, String qosReference, String supportedFeatures) {
     return new AsSessionWithQoSSubscription()
@@ -483,11 +468,21 @@ public class QodServiceImpl implements QodService {
         .supportedFeatures(supportedFeatures);
   }
 
-  private String maskString(String unmaskedString) {
+  /**
+   * Masks the first four characters given string.
+   * @see QodServiceImpl#maskString(String, int)
+   */
+  private static String maskString(String unmaskedString) {
     return maskString(unmaskedString, 4);
   }
 
-  private String maskString(String unmaskedString, int numberOfUnmaskedChars) {
+  /**
+   * @param unmaskedString string to mask
+   * @param numberOfUnmaskedChars defines how many characters won't be masked
+   * @return transformed unmaskedString so that each character from its beginning is replaced with X,
+   * only last numberOfUnmaskedChars characters won't be changed.
+   */
+  private static String maskString(String unmaskedString, int numberOfUnmaskedChars) {
     int indexOfMaskDelimiter = unmaskedString.length() - numberOfUnmaskedChars;
     return unmaskedString.substring(0, indexOfMaskDelimiter).replaceAll("[^-]", "X")
         + unmaskedString.substring(indexOfMaskDelimiter);
@@ -507,16 +502,25 @@ public class QodServiceImpl implements QodService {
   }
 
   /**
-   * Check if the ports in range ordered from lower to higher.
-   *
-   * @param ports Ports to validate
+   * Checks if ports range is ordered from lower to higher & are in 0-65535
+   * @see PortsSpecRanges
    */
-  private static void checkPortRange(String ports) {
-    String[] portsArr = ports.split(",");
-    for (String port : portsArr) {
-      int[] portRange = parsePortsToPortRange(port);
-      if (portRange[0] > portRange[1]) {
-        throw new SessionApiException(HttpStatus.BAD_REQUEST, "Ports range not valid " + port);
+  private static void checkPortRange(PortsSpec ports) {
+    if (ports == null) return;
+    if (ports.getRanges() == null) return;
+    for(var portsSpecRanges : ports.getRanges()){
+      if(portsSpecRanges.getFrom() > portsSpecRanges.getTo()){
+        throw new SessionApiException(
+            HttpStatus.BAD_REQUEST, "Ports specification not valid, given range: from " +
+            portsSpecRanges.getFrom() + ", to " + portsSpecRanges.getTo(),
+            ApplicationConstants.VALIDATION_FAILED);
+      }
+    }
+    if(ports.getPorts() != null){
+      if(ports.getPorts().stream().max(Integer::compareTo).get() > 65535
+          || ports.getPorts().stream().min(Integer::compareTo).get() < 0){
+        throw new SessionApiException(HttpStatus.BAD_REQUEST, "Ports ranges are not valid (0-65535)",
+            ApplicationConstants.VALIDATION_FAILED);
       }
     }
   }
@@ -528,68 +532,36 @@ public class QodServiceImpl implements QodService {
    * @param existingPorts   Ports of active sessions
    * @return true for ports already in use, false for ports not in use
    */
-  private static boolean checkPortIntersection(String newSessionPorts, String existingPorts) {
-    String[] newSession = newSessionPorts.split(",");
-    String[] existing = existingPorts.split(",");
-    for (String newSessionPort : newSession) {
-      int[] newPortRange = parsePortsToPortRange(newSessionPort);
-      if (newPortRange[0] > newPortRange[1]) {
-        throw new SessionApiException(
-            HttpStatus.BAD_REQUEST, "Ports range not valid " + newSessionPort);
+  public static boolean checkPortIntersection(PortsSpec newSessionPorts, PortsSpec existingPorts) {
+    // ports list comparison
+    if(newSessionPorts.getPorts() != null && existingPorts.getPorts() != null){
+      if (newSessionPorts.getPorts().stream().anyMatch(existingPorts.getPorts()::contains)) return true;
+    }
+
+    // ports list & ports range comparison
+    if(newSessionPorts.getPorts() != null && existingPorts.getRanges() != null){
+      for (var range : existingPorts.getRanges()){
+        if(newSessionPorts.getPorts().stream().anyMatch(port -> range.getFrom()<=port && range.getTo()>=port)){
+          return true;
+        }
       }
-      for (String existingPort : existing) {
-        int[] existingPortRange = parsePortsToPortRange(existingPort);
-        if (newPortRange[0] <= existingPortRange[1] && existingPortRange[0] <= newPortRange[1]) {
+    }
+    if(existingPorts.getPorts() != null && newSessionPorts.getRanges() != null){
+      for (var range : newSessionPorts.getRanges()){
+        if(existingPorts.getPorts().stream().anyMatch(port -> range.getFrom()<=port && range.getTo()>=port)){
+          return true;
+        }
+      }
+    }
+
+    // ports range comparison
+    if(newSessionPorts.getRanges() != null && existingPorts.getRanges() != null){
+      for (var range : existingPorts.getRanges()){
+        if(newSessionPorts.getRanges().stream().anyMatch(port -> !(port.getTo() < range.getFrom()) && !(port.getFrom() > range.getTo()))){
           return true;
         }
       }
     }
     return false;
-  }
-
-  /**
-   * Parse the ports string to integer ranges.
-   *
-   * @param ports (e.g. "5000-5600"; "1234")
-   * @return integer port range (e.g. [5000, 5600]; [1234, 1234])
-   */
-  private static int[] parsePortsToPortRange(String ports) {
-    if (!ports.contains("-")) {
-      ports = ports + "-" + ports; // convert single port to port range
-    }
-    return Arrays.stream(ports.split("-")).mapToInt(Integer::parseInt).toArray();
-  }
-
-  /**
-   * Check if the given protocols intersect.
-   *
-   * @param protocol1 protocol name (e.g. UDP/TCP/ANY)
-   * @param protocol2 protocol name (e.g. UDP/TCP/ANY)
-   * @return true for intersecting protocols, false otherwise
-   */
-  private static boolean checkProtocolIntersection(Protocol protocol1, Protocol protocol2) {
-    if (protocol1 == Protocol.ANY || protocol2 == Protocol.ANY) {
-      return true;
-    } else {
-      return protocol1.equals(protocol2);
-    }
-  }
-
-  /**
-   * Execute the check for QoS availability.
-   *
-   * @param ueId UE identifier
-   * @return Http response with a list of available QoS profiles. Only available on the Throughput-API.
-   */
-  public CheckQosAvailabilityResponse checkQosAvailability(@NotNull String ueId) {
-    if (scefConfig.getFlowIdThroughputS() == FLOW_ID_UNKNOWN) {
-      throw new SessionApiException(HttpStatus.NOT_FOUND, "Resource not found");
-    }
-    // toDo: Change the mock implementation to the real implementation
-    return new CheckQosAvailabilityResponse()
-        .addQosProfilesItem(
-            new CheckQosAvailabilityResponseQosProfiles().qos(QosProfile.THROUGHPUT_S))
-        .addQosProfilesItem(
-            new CheckQosAvailabilityResponseQosProfiles().qos(QosProfile.THROUGHPUT_M));
   }
 }

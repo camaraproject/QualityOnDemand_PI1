@@ -23,9 +23,10 @@
 package com.camara.qod.plugin.storage;
 
 import com.camara.datatypes.model.QosSession;
+import com.camara.qod.api.model.AsId;
 import com.camara.qod.api.model.CreateSession;
-import com.camara.qod.api.model.Protocol;
 import com.camara.qod.api.model.QosProfile;
+import com.camara.qod.api.model.UeId;
 import com.camara.qod.plugin.storage.mapping.StorageModelMapper;
 import com.camara.qod.plugin.storage.repository.QodSessionRepository;
 import java.net.URI;
@@ -73,8 +74,8 @@ class StorageImplTest {
   }
 
   private CreateSession session() {
-    return new CreateSession().ueAddr("172.24.11.4").asAddr("200.24.24.2").duration(2).uePorts(null).protocolIn(Protocol.ANY)
-        .protocolOut(Protocol.ANY).qos(QosProfile.LOW_LATENCY).notificationUri(URI.create("http://example.com"))
+    return new CreateSession().ueId(new UeId().ipv4addr("172.24.11.4")).asId(new AsId().ipv4addr("200.24.24.2")).duration(2).uePorts(null)
+        .qos(QosProfile.E).notificationUri(URI.create("http://example.com"))
         .notificationAuthToken("12345");
   }
 

@@ -25,7 +25,6 @@ package com.camara.qod.mapping;
 import com.camara.datatypes.model.QosSession;
 import com.camara.qod.api.model.CreateSession;
 import com.camara.qod.api.model.SessionInfo;
-import com.qod.model.BookkeeperCreateSession;
 import org.mapstruct.Mapper;
 
 /**
@@ -36,5 +35,4 @@ public interface ModelMapper {
 
   SessionInfo map(QosSession qosSession);
 
-  BookkeeperCreateSession map(CreateSession createSession);
 }

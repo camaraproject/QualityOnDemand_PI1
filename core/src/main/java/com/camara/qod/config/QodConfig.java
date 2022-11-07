@@ -34,18 +34,17 @@ import org.springframework.context.annotation.Configuration;
 @Getter
 @ToString
 public class QodConfig {
-
   public static final String NETWORK_SEGMENT_REGEX =
       "^([01]?\\d\\d?|2[0-4]\\d|25[0-5])(?:\\.(?:[01]?\\d\\d?|2[0-4]\\d|25[0-5])){3}(\\/"
           + "([0-9]|[1-2][0-9]|3[0-2]))$";
-  @Value("${qod.qos.references.low-latency}")
-  private String qosReferenceLowLatency;
-  @Value("${qod.qos.references.throughput-s}")
-  private String qosReferenceThroughputS;
-  @Value("${qod.qos.references.throughput-m}")
-  private String qosReferenceThroughputM;
-  @Value("${qod.qos.references.throughput-l}")
-  private String qosReferenceThroughputL;
+  @Value("${qod.qos.references.qos-e}")
+  private String qosReferenceQosE;
+  @Value("${qod.qos.references.qos-s}")
+  private String qosReferenceQosS;
+  @Value("${qod.qos.references.qos-m}")
+  private String qosReferenceQosM;
+  @Value("${qod.qos.references.qos-l}")
+  private String qosReferenceQosL;
   @Value("${qod.expiration.time-before-handling}")
   private int qosExpirationTimeBeforeHandling;
   @Value("${qod.expiration.trigger-interval}")

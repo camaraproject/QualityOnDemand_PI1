@@ -30,6 +30,11 @@ import org.springframework.http.HttpStatus;
  */
 public class SessionApiException extends RuntimeException {
   private HttpStatus httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+  private String constant;
+
+  public String getConstant() {
+    return constant;
+  }
 
   public HttpStatus getHttpStatus() {
     return httpStatus;
@@ -48,5 +53,12 @@ public class SessionApiException extends RuntimeException {
   public SessionApiException(HttpStatus httpStatus, String message) {
     super(message);
     this.httpStatus = httpStatus;
+    this.constant = httpStatus.name();
+  }
+
+  public SessionApiException(HttpStatus httpStatus, String message, ExceptionHandlerAdvice.ApplicationConstants constant) {
+    super(message);
+    this.httpStatus = httpStatus;
+    this.constant = constant.name();
   }
 }

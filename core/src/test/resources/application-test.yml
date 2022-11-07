@@ -3,7 +3,7 @@ scef:
     apiroot: http://localhost:9000
     scsasid: scs
     flowid:
-      throughput-l: -1
+      QOS_L: -1
   debug: true
 
 # QoD specific configuration

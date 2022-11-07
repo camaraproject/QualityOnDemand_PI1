@@ -22,12 +22,16 @@
 
 package com.camara.qod.util;
 
+import com.camara.qod.api.model.AsId;
 import com.camara.qod.api.model.CreateSession;
-import com.camara.qod.api.model.Protocol;
+import com.camara.qod.api.model.PortsSpec;
+import com.camara.qod.api.model.PortsSpecRanges;
 import com.camara.qod.api.model.QosProfile;
 import com.camara.qod.api.model.SessionInfo;
+import com.camara.qod.api.model.UeId;
 import java.net.URI;
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -35,41 +39,34 @@ import java.util.UUID;
  */
 public class SessionsTestData extends TestData {
 
-  public static final String SESSION_URI = "/qod-api/v0/sessions";
-  public static final String AVAILABILITY_URI = "/qod-api/v0/check-qos-availability";
+  public static final String SESSION_URI = "/qod/v0/sessions";
   public static final String NOTIFICATION_URI = "/3gpp-as-session-with-qos/v1/notifications";
   public static final int DURATION_DEFAULT = 2;
   public static final String SESSION_UUID = "000ab9f5-26e8-48b9-a56e-52ecdeaa9172";
 
   public static CreateSession createTestSession(QosProfile qosProfile) {
-    return createTestSession(qosProfile, "200.24.24.2");
+    return createTestSession(qosProfile, new AsId().ipv4addr("200.24.24.2"));
   }
 
-  public static CreateSession createTestSession(QosProfile qosProfile, String asAddr) {
-    return createTestSession(qosProfile, asAddr, null, DURATION_DEFAULT);
+  public static CreateSession createTestSession(QosProfile qosProfile, AsId asId) {
+    return createTestSession(qosProfile, asId, null, DURATION_DEFAULT);
   }
 
-  public static CreateSession createTestSession(
-      QosProfile qosProfile, String asAddr, String uePorts, Integer duration) {
-    return createTestSession(qosProfile, asAddr, uePorts, duration, Protocol.ANY);
-  }
 
   public static CreateSession createTestSession(Integer duration) {
-    return createTestSession(QosProfile.LOW_LATENCY, "200.24.24.2", null, duration);
+    return createTestSession(QosProfile.E, new AsId().ipv4addr("200.24.24.2"), null, duration);
   }
 
   /**
    * Creates a test session by params.
    */
   public static CreateSession createTestSession(
-      QosProfile qosProfile, String asAddr, String uePorts, Integer duration, Protocol protocolIn) {
+      QosProfile qosProfile, AsId asId, PortsSpec uePorts, Integer duration) {
     return new CreateSession()
-        .ueAddr("172.24.11.4")
-        .asAddr(asAddr)
+        .ueId(new UeId().ipv4addr("172.24.11.4"))
+        .asId(asId)
         .duration(duration)
         .uePorts(uePorts)
-        .protocolIn(protocolIn)
-        .protocolOut(Protocol.ANY)
         .qos(qosProfile)
         .notificationUri(URI.create("https://example.com"))
         .notificationAuthToken("12345");
@@ -80,17 +77,28 @@ public class SessionsTestData extends TestData {
    */
   public static String getTestSessionRequest() {
     return "{"
-        + "  \"duration\": 60,"
-        + "  \"ueAddr\": \"198.51.100.1\","
-        + "  \"asAddr\": \"198.51.100.1\","
-        + "  \"uePorts\": \"5010-5020,5021,5022\","
-        + "  \"asPorts\": \"5010-5020,5021,5022\","
-        + "  \"protocolIn\": \"TCP\","
-        + "  \"protocolOut\": \"TCP\","
-        + "  \"qos\": \"LOW_LATENCY\","
-        + "  \"notificationUri\": \"https://application-server.com/notifications\","
-        + "  \"notificationAuthToken\": \"c8974e592c2fa383d4a3960714\""
-        + "}";
+        + "\"duration\": 50,"
+        + "\"ueId\": {"
+          + "\"externalId\": \"123456789@domain.com\","
+          + "\"msisdn\": \"123456789\","
+          + "\"ipv4addr\": \"192.168.0.0/24\""
+        + "},"
+        + "\"asId\": {"
+          + "\"ipv4addr\": \"192.168.0.0/24\"},"
+        + "\"uePorts\": {"
+          + "\"ranges\": [{"
+            + "\"from\": 5010,"
+            + "\"to\": 5020}],"
+        + "\"ports\": [5060, 5070]"
+        + "},"
+        + "\"asPorts\": {"
+          + "\"ranges\": [{"
+            + "\"from\": 5010,"
+            + "\"to\": 5020}],"
+          + "\"ports\": [5060,5070]},"
+        + "\"qos\": \"QOS_E\","
+        + "\"notificationUri\": \"https://application-server.com/notifications\","
+        + "\"notificationAuthToken\": \"c8974e592c2fa383d4a3960714\"\n}";
   }
 
   /**
@@ -98,17 +106,28 @@ public class SessionsTestData extends TestData {
    */
   public static String getTestSessionNetworkInvalid() {
     return "{"
-        + "  \"duration\": 60,"
-        + "  \"ueAddr\": \"198.51.100.1/16\","
-        + "  \"asAddr\": \"198.51.100.1/18\","
-        + "  \"uePorts\": \"5010-5020,5021,5022\","
-        + "  \"asPorts\": \"5010-5020,5021,5022\","
-        + "  \"protocolIn\": \"TCP\","
-        + "  \"protocolOut\": \"TCP\","
-        + "  \"qos\": \"LOW_LATENCY\","
-        + "  \"notificationUri\": \"https://application-server.com/notifications\","
-        + "  \"notificationAuthToken\": \"c8974e592c2fa383d4a3960714\""
-        + "}";
+        + "\"duration\": 50,"
+        + "\"ueId\": {"
+        + "\"externalId\": \"123456789@domain.com\","
+        + "\"msisdn\": \"123456789\","
+        + "\"ipv4addr\": \"198.51.100.1/16\""
+        + "},"
+        + "\"asId\": {"
+        + "\"ipv4addr\": \"198.51.100.1/18\"},"
+        + "\"uePorts\": {"
+        + "\"ranges\": [{"
+        + "\"from\": 5010,"
+        + "\"to\": 5020}],"
+        + "\"ports\": [5060, 5070]"
+        + "},"
+        + "\"asPorts\": {"
+        + "\"ranges\": [{"
+        + "\"from\": 5010,"
+        + "\"to\": 5020}],"
+        + "\"ports\": [5060,5070]},"
+        + "\"qos\": \"QOS_E\","
+        + "\"notificationUri\": \"https://application-server.com/notifications\","
+        + "\"notificationAuthToken\": \"c8974e592c2fa383d4a3960714\"\n}";
   }
 
   /**
@@ -116,35 +135,28 @@ public class SessionsTestData extends TestData {
    */
   public static String getTestSessionAddrInvalid() {
     return "{"
-        + "  \"duration\": 60,"
-        + "  \"ueAddr\": \"1987.51.100.1\","
-        + "  \"asAddr\": \"198.51.100.1\","
-        + "  \"uePorts\": \"5010-5020,5021,5022\","
-        + "  \"asPorts\": \"5010-5020,5021,5022\","
-        + "  \"protocolIn\": \"TCP\","
-        + "  \"protocolOut\": \"TCP\","
-        + "  \"qos\": \"LOW_LATENCY\","
-        + "  \"notificationUri\": \"https://application-server.com/notifications\","
-        + "  \"notificationAuthToken\": \"c8974e592c2fa383d4a3960714\""
-        + "}";
-  }
-
-  /**
-   * Creates test session request content, with invalid protocol data.
-   */
-  public static String getTestSessionProtocolInvalid() {
-    return "{"
-        + "  \"duration\": 60,"
-        + "  \"ueAddr\": \"1987.51.100.1/16\","
-        + "  \"asAddr\": \"198.51.100.1/18\","
-        + "  \"uePorts\": \"5010-5020,5021,5022\","
-        + "  \"asPorts\": \"5010-5020,5021,5022\","
-        + "  \"protocolIn\": \"What?\","
-        + "  \"protocolOut\": \"TCP\","
-        + "  \"qos\": \"LOW_LATENCY\","
-        + "  \"notificationUri\": \"https://application-server.com/notifications\","
-        + "  \"notificationAuthToken\": \"c8974e592c2fa383d4a3960714\""
-        + "}";
+        + "\"duration\": 50,"
+        + "\"ueId\": {"
+        + "\"externalId\": \"123456789@domain.com\","
+        + "\"msisdn\": \"123456789\","
+        + "\"ipv4addr\": \"1923.168.0.0/24\""
+        + "},"
+        + "\"asId\": {"
+        + "\"ipv4addr\": \"192.168.0.0/24\"},"
+        + "\"uePorts\": {"
+        + "\"ranges\": [{"
+        + "\"from\": 5010,"
+        + "\"to\": 5020}],"
+        + "\"ports\": [5060, 5070]"
+        + "},"
+        + "\"asPorts\": {"
+        + "\"ranges\": [{"
+        + "\"from\": 5010,"
+        + "\"to\": 5020}],"
+        + "\"ports\": [5060,5070]},"
+        + "\"qos\": \"QOS_E\","
+        + "\"notificationUri\": \"https://application-server.com/notifications\","
+        + "\"notificationAuthToken\": \"c8974e592c2fa383d4a3960714\"\n}";
   }
 
   /**
@@ -157,13 +169,11 @@ public class SessionsTestData extends TestData {
     info.setExpiresAt(1665730642L);
     info.setMessages(Collections.emptyList());
     info.setDuration(60);
-    info.setUeAddr("198.51.100.1");
-    info.setAsAddr("198.51.100.1");
-    info.setUePorts("5010 - 5020, 5021, 5022");
-    info.setAsPorts("5010 - 5020, 5021, 5022");
-    info.setProtocolIn(Protocol.TCP);
-    info.setProtocolOut(Protocol.TCP);
-    info.setQos(QosProfile.LOW_LATENCY);
+    info.ueId(new UeId().ipv4addr("198.51.100.1"));
+    info.asId(new AsId().ipv4addr("198.51.100.1"));
+    info.uePorts(new PortsSpec().ports(List.of(5021,5022)).ranges(List.of(new PortsSpecRanges().from(5010).to(5020))));
+    info.asPorts(new PortsSpec().ports(List.of(5021,5022)).ranges(List.of(new PortsSpecRanges().from(5010).to(5020))));
+    info.setQos(QosProfile.E);
     info.setNotificationUri(new URI("http://application-server.com/notifications"));
     info.setNotificationAuthToken("c8974e592c2fa383d4a3960714");
 

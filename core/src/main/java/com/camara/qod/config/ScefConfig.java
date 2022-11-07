@@ -35,17 +35,17 @@ public class ScefConfig {
   @Value("${scef.server.apiroot}")
   private String apiRoot;
 
-  @Value("${scef.server.flowid.low-latency}")
-  private int flowIdLowLatency;
+  @Value("${scef.server.flowid.qos-e}")
+  private int flowIdQosE;
 
-  @Value("${scef.server.flowid.throughput-s}")
-  private int flowIdThroughputS;
+  @Value("${scef.server.flowid.qos-s}")
+  private int flowIdQosS;
 
-  @Value("${scef.server.flowid.throughput-m}")
-  private int flowIdThroughputM;
+  @Value("${scef.server.flowid.qos-m}")
+  private int flowIdQosM;
 
-  @Value("${scef.server.flowid.throughput-l}")
-  private int flowIdThroughputL;
+  @Value("${scef.server.flowid.qos-l}")
+  private int flowIdQosL;
 
   @Value("${scef.server.scsasid}")
   private String scsAsId;

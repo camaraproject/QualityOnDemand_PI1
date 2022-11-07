@@ -13,10 +13,10 @@ scef:
     apiroot: https://example.com
     scsasid: scs
     flowid:
-      low-latency: 3
-      throughput-s: 4
-      throughput-m: 5
-      throughput-l: 6
+      qos-e: 3
+      qos-s: 4
+      qos-m: 5
+      qos-l: 6
     supportedFeatures: 003C
   notifications:
     url: http://127.0.0.1/notifications
@@ -32,10 +32,10 @@ scef:
 qod:
   qos:
     references:
-      low-latency: qod_1
-      throughput-s: qod_2
-      throughput-m: qod_3
-      throughput-l: qod_4
+      qos-e: qod_1
+      qos-s: qod_2
+      qos-m: qod_3
+      qos-l: qod_4
   expiration: # settings for session expiration handling (in seconds)
     time-before-handling: 20
     trigger-interval: 10

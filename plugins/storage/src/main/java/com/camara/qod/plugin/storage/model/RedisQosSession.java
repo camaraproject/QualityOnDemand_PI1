@@ -22,6 +22,9 @@
 
 package com.camara.qod.plugin.storage.model;
 
+import com.camara.qod.api.model.AsId;
+import com.camara.qod.api.model.PortsSpec;
+import com.camara.qod.api.model.UeId;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
@@ -38,11 +41,13 @@ import org.springframework.data.redis.core.index.Indexed;
 public class RedisQosSession extends com.camara.datatypes.model.QosSession {
 
   @Indexed
-  private String ueAddr;
+  private String ueIpv4addr;
   @Indexed
-  private String asAddr;
+  private UeId ueId;
   @Indexed
-  private String uePorts;
+  private AsId asId;
   @Indexed
-  private String asPorts;
+  private PortsSpec uePorts;
+  @Indexed
+  private PortsSpec asPorts;
 }

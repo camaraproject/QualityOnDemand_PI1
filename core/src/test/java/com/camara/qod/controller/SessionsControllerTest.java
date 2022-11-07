@@ -27,7 +27,6 @@ import static com.camara.qod.util.SessionsTestData.SESSION_UUID;
 import static com.camara.qod.util.SessionsTestData.createSessionInfoSample;
 import static com.camara.qod.util.SessionsTestData.getTestSessionAddrInvalid;
 import static com.camara.qod.util.SessionsTestData.getTestSessionNetworkInvalid;
-import static com.camara.qod.util.SessionsTestData.getTestSessionProtocolInvalid;
 import static com.camara.qod.util.SessionsTestData.getTestSessionRequest;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -94,22 +93,6 @@ class SessionsControllerTest {
   }
 
   @Test
-  void renewSession_ok() throws Exception {
-    when(qodService.renewSession(any(), any())).thenReturn(createSessionInfoSample());
-    mockMvc.perform(MockMvcRequestBuilders
-            .patch(SESSION_URI + "/" + SESSION_UUID)
-            .accept(MediaType.APPLICATION_JSON_VALUE)
-            .contentType(MediaType.APPLICATION_JSON_VALUE)
-            .content(getTestSessionRequest()))
-        .andDo(MockMvcResultHandlers.print())
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.notificationAuthToken")
-            .value("c8974e592c2fa383d4a3960714"))
-        .andExpect(jsonPath("$.id")
-            .value(SESSION_UUID));
-  }
-
-  @Test
   void deleteSession_ok() throws Exception {
     when(qodService.deleteSession(any())).thenReturn(createSessionInfoSample());
     mockMvc.perform(MockMvcRequestBuilders
@@ -132,7 +115,7 @@ class SessionsControllerTest {
             .content(getTestSessionRequest()))
         .andDo(MockMvcResultHandlers.print())
         .andExpect(status().isServiceUnavailable())
-        .andExpect(jsonPath("$.error.message")
+        .andExpect(jsonPath("$.message")
             .value("The service is currently not available"));
   }
 
@@ -148,7 +131,7 @@ class SessionsControllerTest {
             .content(getTestSessionRequest()))
         .andDo(MockMvcResultHandlers.print())
         .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.error.message")
+        .andExpect(jsonPath("$.message")
             .value("A network segment for ueAddr is not allowed in the current "
                 + "configuration: 198.51.100.1 is not allowed, but 123.45.678.9 is allowed."));
   }
@@ -162,7 +145,7 @@ class SessionsControllerTest {
             .content(getTestSessionNetworkInvalid()))
         .andDo(MockMvcResultHandlers.print())
         .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.error.message")
+        .andExpect(jsonPath("$.message")
             .value("Network specification not valid 198.51.100.1/18"));
   }
 
@@ -175,21 +158,8 @@ class SessionsControllerTest {
             .content(getTestSessionAddrInvalid()))
         .andDo(MockMvcResultHandlers.print())
         .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.error.message")
-            .value("Validation failed for parameter 'ueAddr'"));
-  }
-
-  @Test
-  void createSession_BadRequest_ValidationPortFailed() throws Exception {
-    mockMvc.perform(MockMvcRequestBuilders
-            .post(SESSION_URI)
-            .accept(MediaType.APPLICATION_JSON_VALUE)
-            .contentType(MediaType.APPLICATION_JSON_VALUE)
-            .content(getTestSessionProtocolInvalid()))
-        .andDo(MockMvcResultHandlers.print())
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.error.message")
-            .value("Validation failed for parameter 'protocolIn'"));
+        .andExpect(jsonPath("$.message")
+            .value("Validation failed for parameter 'ueId.ipv4addr'"));
   }
 
   @Test
@@ -203,7 +173,7 @@ class SessionsControllerTest {
             .content(getTestSessionRequest()))
         .andDo(MockMvcResultHandlers.print())
         .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.error.message")
+        .andExpect(jsonPath("$.message")
             .value("Ports specification not valid 5010-5020,5021,5022,AB"));
   }
 
@@ -219,7 +189,7 @@ class SessionsControllerTest {
             .content(getTestSessionRequest()))
         .andDo(MockMvcResultHandlers.print())
         .andExpect(status().isConflict())
-        .andExpect(jsonPath("$.error.message")
+        .andExpect(jsonPath("$.message")
             .value(
                 "Found session XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXcfbb already active until "
                     + "2022-10-14T11:12:43Z"));
@@ -236,7 +206,7 @@ class SessionsControllerTest {
             .content(getTestSessionRequest()))
         .andDo(MockMvcResultHandlers.print())
         .andExpect(status().isConflict())
-        .andExpect(jsonPath("$.error.message")
+        .andExpect(jsonPath("$.message")
             .value("Requested QoS session is currently not available"));
   }
 
@@ -252,7 +222,7 @@ class SessionsControllerTest {
             .content(getTestSessionRequest()))
         .andDo(MockMvcResultHandlers.print())
         .andExpect(status().isInternalServerError())
-        .andExpect(jsonPath("$.error.message")
+        .andExpect(jsonPath("$.message")
             .value(
                 "No valid subscription ID was provided in NEF/SCEF response"));
   }
@@ -268,7 +238,7 @@ class SessionsControllerTest {
             .contentType(MediaType.APPLICATION_JSON_VALUE))
         .andDo(MockMvcResultHandlers.print())
         .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$.error.message")
+        .andExpect(jsonPath("$.message")
             .value("QoD session not found for session ID: 963ab9f5-26e8-48b9-a56e-52ecdeaa9172"));
   }
 
@@ -283,7 +253,7 @@ class SessionsControllerTest {
             .contentType(MediaType.APPLICATION_JSON_VALUE))
         .andDo(MockMvcResultHandlers.print())
         .andExpect(status().isServiceUnavailable())
-        .andExpect(jsonPath("$.error.message")
+        .andExpect(jsonPath("$.message")
             .value("The service is currently not available"));
   }
 
@@ -298,7 +268,7 @@ class SessionsControllerTest {
             .contentType(MediaType.APPLICATION_JSON_VALUE))
         .andDo(MockMvcResultHandlers.print())
         .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$.error.message")
+        .andExpect(jsonPath("$.message")
             .value("QoD session not found for session ID: 963ab9f5-26e8-48b9-a56e-52ecdeaa9172"));
   }
 

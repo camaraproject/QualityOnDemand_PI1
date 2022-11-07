@@ -86,7 +86,7 @@ class NotificationControllerTest {
             .content(getNotificationRequest())) // UserPlaneNotificationData
         .andDo(MockMvcResultHandlers.print())
         .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$.error.message")
+        .andExpect(jsonPath("$.message")
             .value("QoD session not found for session ID: 963ab9f5-26e8-48b9-a56e-52ecdeaa9172"));
   }
 
@@ -103,7 +103,7 @@ class NotificationControllerTest {
             .content(getNotificationRequest())) // UserPlaneNotificationData
         .andDo(MockMvcResultHandlers.print())
         .andExpect(status().isServiceUnavailable())
-        .andExpect(jsonPath("$.error.message")
+        .andExpect(jsonPath("$.message")
             .value("The service is currently not available"));
   }
 }

@@ -61,12 +61,11 @@ public class StorageImpl implements StorageInterface {
             .startedAt(startedAt)
             .expiresAt(expiresAt)
             .duration(session.getDuration())
-            .ueAddr(session.getUeAddr())
-            .asAddr(session.getAsAddr())
+            .ueIpv4addr(session.getUeId().getIpv4addr())
+            .ueId(session.getUeId())
+            .asId(session.getAsId())
             .uePorts(session.getUePorts())
             .asPorts(session.getAsPorts())
-            .protocolIn(session.getProtocolIn())
-            .protocolOut(session.getProtocolOut())
             .qos(session.getQos())
             .subscriptionId(subscriptionId)
             .notificationUri(session.getNotificationUri())
@@ -126,9 +125,9 @@ public class StorageImpl implements StorageInterface {
   }
 
   @Override
-  public List<QosSession> findByUeAddr(String ueAddr) {
+  public List<QosSession> findByUeIpv4addr(String ipAddr) {
     return sessionRepo
-        .findByUeAddr(ueAddr)
+        .findByUeIpv4addr(ipAddr)
         .stream()
         .map(storageModelMapper::mapToLibraryQosSession)
         .collect(Collectors.toList());

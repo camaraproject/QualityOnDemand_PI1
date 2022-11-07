@@ -27,7 +27,6 @@ import static com.camara.qod.util.SessionsTestData.createSessionInfoSample;
 import static com.camara.qod.util.SessionsTestData.createTestSession;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -35,11 +34,11 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 import com.camara.datatypes.model.QosSession;
-import com.camara.qod.api.model.CheckQosAvailabilityResponse;
 import com.camara.qod.api.model.CreateSession;
 import com.camara.qod.api.model.Notification;
 import com.camara.qod.api.model.QosProfile;
 import com.camara.qod.api.model.SessionInfo;
+import com.camara.qod.api.model.UeId;
 import com.camara.qod.api.notifications.SessionNotificationsCallbackApi;
 import com.camara.qod.config.QodConfig;
 import com.camara.qod.config.ScefConfig;
@@ -181,31 +180,15 @@ class QodServiceImplTest {
   }
 
   @Test
-  void checkQosAvailability_ok() {
-    CheckQosAvailabilityResponse response = service.checkQosAvailability("123456789@domain.com");
-    assertEquals(2, response.getQosProfiles().size());
-  }
-
-  @Test
-  void checkQosAvailability_NotFound() {
-    ReflectionTestUtils.setField(scefConfig, "flowIdThroughputS", -1);
-    SessionApiException thrownException = assertThrows(SessionApiException.class,
-        () -> service.checkQosAvailability("123456789@domain.com"));
-    Assertions.assertEquals(HttpStatus.NOT_FOUND, thrownException.getHttpStatus());
-    Assertions.assertEquals("Resource not found", thrownException.getMessage()
-    );
-  }
-
-  @Test
   void createSession_Fail_QosAllowMultipleUeAddr() {
     ReflectionTestUtils.setField(qodConfig, "qosAllowMultipleUeAddr", false);
-    CreateSession session = createTestSession(QosProfile.THROUGHPUT_M);
-    session.ueAddr("72.24.11.4/17");
+    CreateSession session = createTestSession(QosProfile.E);
+    session.ueId(new UeId().ipv4addr("72.24.11.4/17"));
     SessionApiException thrownException = assertThrows(SessionApiException.class,
         () -> service.createSession(session));
     Assertions.assertEquals(HttpStatus.BAD_REQUEST, thrownException.getHttpStatus());
     Assertions.assertEquals(
-        "A network segment for ueAddr is not allowed in the current configuration: 72.24.11.4/17 is not allowed, but 72.24.11.4 is "
+        "A network segment for UeIdIpv4Addr is not allowed in the current configuration: 72.24.11.4/17 is not allowed, but 72.24.11.4 is "
             + "allowed.",
         thrownException.getMessage()
     );

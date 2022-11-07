@@ -39,10 +39,10 @@ public interface QodSessionRepository extends CrudRepository<RedisQosSession, UU
   /**
    * Get QoS session by UE address.
    *
-   * @param ueAddr user equipment ip address to search for
+   * @param ipAddr user equipment ip address to search for
    * @return QoS session or null if session not found
    */
-  List<RedisQosSession> findByUeAddr(@NotBlank String ueAddr);
+  List<RedisQosSession> findByUeIpv4addr(String ipAddr);
 
   /**
    * Get QoS session by SENF/NEF subscription.

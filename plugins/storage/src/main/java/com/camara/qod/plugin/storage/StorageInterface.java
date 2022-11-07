@@ -1,5 +1,3 @@
-package com.camara.qod.plugin.storage;
-
 /*-
  * ---license-start
  * CAMARA Project
@@ -21,6 +19,7 @@ package com.camara.qod.plugin.storage;
  * limitations under the License.
  * ---license-end
  */
+package com.camara.qod.plugin.storage;
 
 import com.camara.datatypes.model.QosSession;
 import com.camara.datatypes.model.QosSessionIdWithExpiration;
@@ -66,7 +65,7 @@ public interface StorageInterface {
    */
   List<QosSessionIdWithExpiration> getSessionsThatExpireUntil(double expirationTime);
 
-  List<QosSession> findByUeAddr(String ueAddr);
+  List<QosSession> findByUeIpv4addr(String ipAddr);
 
   Optional<QosSession> findBySubscriptionId(String subscriptionId);
 }

@@ -22,7 +22,9 @@
 
 package com.camara.datatypes.model;
 
-import com.camara.qod.api.model.Protocol;
+import com.camara.qod.api.model.AsId;
+import com.camara.qod.api.model.UeId;
+import com.camara.qod.api.model.PortsSpec;
 import com.camara.qod.api.model.QosProfile;
 import java.net.URI;
 import java.util.UUID;
@@ -39,19 +41,17 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 @NoArgsConstructor
 public class QosSession {
-
+  private String ueIpv4addr;
   private UUID id;
   private String subscriptionId;
   private long startedAt;
   private long expiresAt;
   private int duration;
-  private String ueAddr;
-  private String asAddr;
-  private String uePorts;
-  private String asPorts;
+  private UeId ueId;
+  private AsId asId;
+  private PortsSpec uePorts;
+  private PortsSpec asPorts;
   private QosProfile qos;
-  private Protocol protocolIn;
-  private Protocol protocolOut;
   private URI notificationUri;
   private String notificationAuthToken;
   private long

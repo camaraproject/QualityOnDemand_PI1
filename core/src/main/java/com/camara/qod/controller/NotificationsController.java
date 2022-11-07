@@ -26,6 +26,7 @@ import com.camara.qod.commons.Util;
 import com.camara.qod.service.QodService;
 import com.camara.scef.api.model.UserPlaneEvent;
 import com.camara.scef.api.model.UserPlaneNotificationData;
+import com.camara.scef.api.notifications.NotificationsApi;
 import com.camara.scef.api.notifications.NotificationsApiDelegate;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -44,6 +45,10 @@ public class NotificationsController implements NotificationsApiDelegate {
 
   private final QodService qodService;
 
+  /**
+   * POST /notifications : notify bearer level event(s) from the SCEF to the SCS/AS
+   * @see NotificationsApi#notificationsPost
+   */
   @Override
   public ResponseEntity<Void> notificationsPost(
       UserPlaneNotificationData userPlaneNotificationData) {
