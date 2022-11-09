@@ -43,7 +43,7 @@ qod:
   mask-sensible-data: true # if set to true, sensible data is masked in response body
   allow-multiple-ueaddr: true # if set to true, network segments are allowed for ueAddr
   bookkeeper:
-    enabled: true # if set to true, bookkeeper service is requested for availability of requested size
+    enabled: false # if set to true, bookkeeper service is requested for availability of requested size
     url: http://localhost:8082/bookkeeper
 # Logging
 logging:
@@ -62,7 +62,10 @@ management:
   info:
     enabled: true
 
-# Redis
+databases:
+  redis:
+    enabled: true
+
 spring:
   redis:
     host: localhost

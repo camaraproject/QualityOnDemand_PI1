@@ -38,9 +38,6 @@
     <module>core</module>
     <module>3gpp</module>
     <module>coverage</module>
-    <module>dist</module>
-    <module>datatypes</module>
-    <module>plugins/storage</module>
   </modules>
 
   <build>

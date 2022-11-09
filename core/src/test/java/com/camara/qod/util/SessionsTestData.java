@@ -29,7 +29,10 @@ import com.camara.qod.api.model.PortsSpecRanges;
 import com.camara.qod.api.model.QosProfile;
 import com.camara.qod.api.model.SessionInfo;
 import com.camara.qod.api.model.UeId;
+import com.camara.qod.entity.H2QosSession;
+import com.camara.qod.entity.RedisQosSession;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -79,23 +82,23 @@ public class SessionsTestData extends TestData {
     return "{"
         + "\"duration\": 50,"
         + "\"ueId\": {"
-          + "\"externalId\": \"123456789@domain.com\","
-          + "\"msisdn\": \"123456789\","
-          + "\"ipv4addr\": \"192.168.0.0/24\""
+        + "\"externalId\": \"123456789@domain.com\","
+        + "\"msisdn\": \"123456789\","
+        + "\"ipv4addr\": \"192.168.0.0/24\""
         + "},"
         + "\"asId\": {"
-          + "\"ipv4addr\": \"192.168.0.0/24\"},"
+        + "\"ipv4addr\": \"192.168.0.0/24\"},"
         + "\"uePorts\": {"
-          + "\"ranges\": [{"
-            + "\"from\": 5010,"
-            + "\"to\": 5020}],"
+        + "\"ranges\": [{"
+        + "\"from\": 5010,"
+        + "\"to\": 5020}],"
         + "\"ports\": [5060, 5070]"
         + "},"
         + "\"asPorts\": {"
-          + "\"ranges\": [{"
-            + "\"from\": 5010,"
-            + "\"to\": 5020}],"
-          + "\"ports\": [5060,5070]},"
+        + "\"ranges\": [{"
+        + "\"from\": 5010,"
+        + "\"to\": 5020}],"
+        + "\"ports\": [5060,5070]},"
         + "\"qos\": \"QOS_E\","
         + "\"notificationUri\": \"https://application-server.com/notifications\","
         + "\"notificationAuthToken\": \"c8974e592c2fa383d4a3960714\"\n}";
@@ -171,8 +174,8 @@ public class SessionsTestData extends TestData {
     info.setDuration(60);
     info.ueId(new UeId().ipv4addr("198.51.100.1"));
     info.asId(new AsId().ipv4addr("198.51.100.1"));
-    info.uePorts(new PortsSpec().ports(List.of(5021,5022)).ranges(List.of(new PortsSpecRanges().from(5010).to(5020))));
-    info.asPorts(new PortsSpec().ports(List.of(5021,5022)).ranges(List.of(new PortsSpecRanges().from(5010).to(5020))));
+    info.uePorts(new PortsSpec().ports(List.of(5021, 5022)).ranges(List.of(new PortsSpecRanges().from(5010).to(5020))));
+    info.asPorts(new PortsSpec().ports(List.of(5021, 5022)).ranges(List.of(new PortsSpecRanges().from(5010).to(5020))));
     info.setQos(QosProfile.E);
     info.setNotificationUri(new URI("http://application-server.com/notifications"));
     info.setNotificationAuthToken("c8974e592c2fa383d4a3960714");
@@ -180,18 +183,55 @@ public class SessionsTestData extends TestData {
     return info;
   }
 
+
   /**
-   * Create a notification request sample.
+   * Creates a {@link H2QosSession} for test usage.
+   *
+   * @return the created {@link H2QosSession}
+   * @throws URISyntaxException when there is no good URI
    */
-  public static String getNotificationRequest() {
-    return "{"
-        + "  \"transaction\": \"123\","
-        + "  \"eventReports\": ["
-        + "      {"
-        + "          \"event\": \"SESSION_TERMINATION\""
-        + "      }"
-        + "  ]"
-        + "}";
+  public static H2QosSession getH2QosSessionTestData() throws URISyntaxException {
+    return H2QosSession.builder()
+        .id(UUID.randomUUID())
+        .startedAt(1665730582L)
+        .expiresAt(1665730642L)
+        .duration(DURATION_DEFAULT)
+        .ueId(new UeId().ipv4addr("198.51.100.1"))
+        .asId(new AsId().ipv4addr("198.51.100.1"))
+        .uePorts(new PortsSpec().ports(List.of(5021, 5022)).ranges(List.of(new PortsSpecRanges().from(5010).to(5020))))
+        .asPorts(new PortsSpec().ports(List.of(5021, 5022)).ranges(List.of(new PortsSpecRanges().from(5010).to(5020))))
+        .qos(QosProfile.L)
+        .subscriptionId("subscrId123")
+        .notificationUri(new URI("http://application-server.com/notifications"))
+        .notificationAuthToken("c8974e592c2fa383d4a3960714")
+        .expirationLockUntil(0)
+        .bookkeeperId(null)
+        .build();
+  }
+
+  /**
+   * Creates a {@link RedisQosSession} for test usage.
+   *
+   * @return the created {@link RedisQosSession}
+   * @throws URISyntaxException when there is no good URI
+   */
+  public static RedisQosSession getRedisQosSessionTestData() throws URISyntaxException {
+    return RedisQosSession.builder()
+        .id(UUID.randomUUID())
+        .startedAt(1665730582L)
+        .expiresAt(1665730642L)
+        .duration(DURATION_DEFAULT)
+        .ueId(new UeId().ipv4addr("198.51.100.1"))
+        .asId(new AsId().ipv4addr("198.51.100.1"))
+        .uePorts(new PortsSpec().ports(List.of(5021, 5022)).ranges(List.of(new PortsSpecRanges().from(5010).to(5020))))
+        .asPorts(new PortsSpec().ports(List.of(5021, 5022)).ranges(List.of(new PortsSpecRanges().from(5010).to(5020))))
+        .qos(QosProfile.L)
+        .subscriptionId("subscrId123")
+        .notificationUri(new URI("http://application-server.com/notifications"))
+        .notificationAuthToken("c8974e592c2fa383d4a3960714")
+        .expirationLockUntil(0)
+        .bookkeeperId(null)
+        .build();
   }
 
 }

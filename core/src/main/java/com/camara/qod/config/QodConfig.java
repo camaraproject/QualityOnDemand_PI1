@@ -34,6 +34,7 @@ import org.springframework.context.annotation.Configuration;
 @Getter
 @ToString
 public class QodConfig {
+
   public static final String NETWORK_SEGMENT_REGEX =
       "^([01]?\\d\\d?|2[0-4]\\d|25[0-5])(?:\\.(?:[01]?\\d\\d?|2[0-4]\\d|25[0-5])){3}(\\/"
           + "([0-9]|[1-2][0-9]|3[0-2]))$";

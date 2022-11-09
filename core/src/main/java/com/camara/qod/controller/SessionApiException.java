@@ -25,10 +25,10 @@ package com.camara.qod.controller;
 import org.springframework.http.HttpStatus;
 
 /**
- * A SessionApiException is raised during runtime, if something went wrong (e.g. invalid request
- * parameters, error from NEF, ...).
+ * A SessionApiException is raised during runtime, if something went wrong (e.g. invalid request parameters, error from NEF, ...).
  */
 public class SessionApiException extends RuntimeException {
+
   private HttpStatus httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
   private String constant;
 
@@ -40,15 +40,18 @@ public class SessionApiException extends RuntimeException {
     return httpStatus;
   }
 
-  /** Construct INTERNAL_SERVER_ERROR exception w/o detailed message. */
-  public SessionApiException() {}
+  /**
+   * Construct INTERNAL_SERVER_ERROR exception w/o detailed message.
+   */
+  public SessionApiException() {
+  }
 
   /**
-   * Constructs a new runtime exception with the specified detail message. The cause is not
-   * initialized, and may subsequently be initialized by a call to {@link #initCause}.
+   * Constructs a new runtime exception with the specified detail message. The cause is not initialized, and may subsequently be initialized
+   * by a call to {@link #initCause}.
    *
-   * @param message the detail message. The detail message is saved for later retrieval by the
-   *     {@link #getMessage()} method.
+   * @param httpStatus the {@link HttpStatus}
+   * @param message    the detail message. The detail message is saved for later retrieval by the {@link #getMessage()} method.
    */
   public SessionApiException(HttpStatus httpStatus, String message) {
     super(message);
@@ -56,6 +59,13 @@ public class SessionApiException extends RuntimeException {
     this.constant = httpStatus.name();
   }
 
+  /**
+   * Constructs a new runtime exception with the specified detail message and an {@link ExceptionHandlerAdvice.ApplicationConstants}.
+   *
+   * @param httpStatus the {@link HttpStatus}
+   * @param message    the detail message. The detail message is saved for later retrieval by the {@link #getMessage()} method.
+   * @param constant   {@link ExceptionHandlerAdvice.ApplicationConstants}
+   */
   public SessionApiException(HttpStatus httpStatus, String message, ExceptionHandlerAdvice.ApplicationConstants constant) {
     super(message);
     this.httpStatus = httpStatus;

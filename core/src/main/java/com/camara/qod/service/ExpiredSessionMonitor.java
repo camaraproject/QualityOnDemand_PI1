@@ -22,12 +22,11 @@
 
 package com.camara.qod.service;
 
-import com.camara.datatypes.model.QosSession;
-import com.camara.datatypes.model.QosSessionIdWithExpiration;
 import com.camara.qod.api.model.SessionEvent;
 import com.camara.qod.api.model.SessionInfo;
 import com.camara.qod.config.QodConfig;
-import com.camara.qod.plugin.storage.StorageInterface;
+import com.camara.qod.model.QosSession;
+import com.camara.qod.model.QosSessionIdWithExpiration;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
@@ -53,7 +52,7 @@ public class ExpiredSessionMonitor {
 
   private final QodService qodService;
   private final QodConfig qodConfig;
-  private final StorageInterface storage;
+  private final StorageService storage;
 
   /**
    * Setup expiration listener to check for (almost) expired sessions.
@@ -62,13 +61,13 @@ public class ExpiredSessionMonitor {
   @SchedulerLock(name = "expiredSessionMonitor")
   public void checkForExpiredSessions() {
     log.debug("Check for (almost) expired sessions...");
-    double maxExpiration =
+    long maxExpiration =
         Instant.now().getEpochSecond() + this.qodConfig.getQosExpirationTimeBeforeHandling();
 
     // Get QoS sessions with smaller expire time than the given time
     List<QosSessionIdWithExpiration> qosSessionExpirationList = storage.getSessionsThatExpireUntil(
         maxExpiration);
-    log.debug("QoS sessions which will soon expire: " + qosSessionExpirationList);
+    log.debug("QoS sessions which will soon expire: {}", qosSessionExpirationList);
 
     if (qosSessionExpirationList != null) {
       qosSessionExpirationList.forEach(
@@ -80,9 +79,7 @@ public class ExpiredSessionMonitor {
               QosSession session = sessionOptional.get();
               // Check that no valid lock exits:
               if (session.getExpirationLockUntil() < now) {
-                log.info(
-                    "Create ExpiredSessionTask for session with id: "
-                        + expiredQosSession.getId());
+                log.info("Create ExpiredSessionTask for session with id: {}", expiredQosSession.getId());
                 long scheduleAt = Math.max(expiredQosSession.getExpiresAt(), now);
                 // The lock ensures, that the task is only scheduled once. If the task fails, a new
                 // task is scheduled afterwards.
@@ -106,17 +103,14 @@ public class ExpiredSessionMonitor {
   /**
    * Class that deletes an expired session. Every almost expired session creates an instance of this class.
    */
+  @RequiredArgsConstructor
   class ExpiredSessionTask extends TimerTask {
 
     private final UUID sessionId;
 
-    public ExpiredSessionTask(UUID sessionId) {
-      this.sessionId = sessionId;
-    }
-
     @Override
     public void run() {
-      log.info("QoD session " + sessionId + " expired, deleting...");
+      log.info("QoD session {} expired, deleting...", sessionId);
       SessionInfo sessionInfo = qodService.deleteSession(sessionId);
       qodService.notifySession(sessionInfo, SessionEvent.SESSION_TERMINATED);
     }

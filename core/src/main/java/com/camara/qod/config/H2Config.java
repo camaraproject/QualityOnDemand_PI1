@@ -20,31 +20,34 @@
  * ---license-end
  */
 
-package com.camara.qod.commons;
+package com.camara.qod.config;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
+import javax.sql.DataSource;
+import lombok.Getter;
+import net.javacrumbs.shedlock.core.LockProvider;
+import net.javacrumbs.shedlock.provider.jdbctemplate.JdbcTemplateLockProvider;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 /**
- * This class contains utility functions.
+ * This class contains specific configurations for the H2 database.
  */
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
-public final class Util {
+@Configuration
+@Getter
+@EnableJpaRepositories("com.camara.qod.repository")
+@Profile("local")
+public class H2Config {
+
 
   /**
-   * Returns the subscription id of a given subscription URI.
+   * Create a JdbcTemplateLockProvider instance for the use of Shedlock with redis.
    *
-   * @param subscriptionUri URI of the subscription
-   * @return subscriptionId
+   * @return JdbcTemplateLockProvider instance
    */
-  public static String subscriptionId(String subscriptionUri) {
-    if (subscriptionUri == null) {
-      return null;
-    }
-    String[] split = subscriptionUri.split("subscriptions/");
-    if (split.length == 0) {
-      return null;
-    }
-    return split[split.length - 1];
+  @Bean
+  public LockProvider lockProvider(DataSource dataSource) {
+    return new JdbcTemplateLockProvider(dataSource);
   }
 }

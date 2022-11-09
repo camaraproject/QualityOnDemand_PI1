@@ -25,15 +25,16 @@ package com.camara.qod.service;
 import static com.camara.qod.util.SessionsTestData.SESSION_UUID;
 import static com.camara.qod.util.SessionsTestData.createSessionInfoSample;
 import static com.camara.qod.util.SessionsTestData.createTestSession;
+import static com.camara.qod.util.SessionsTestData.getRedisQosSessionTestData;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
-import com.camara.datatypes.model.QosSession;
 import com.camara.qod.api.model.CreateSession;
 import com.camara.qod.api.model.Notification;
 import com.camara.qod.api.model.QosProfile;
@@ -41,12 +42,13 @@ import com.camara.qod.api.model.SessionInfo;
 import com.camara.qod.api.model.UeId;
 import com.camara.qod.api.notifications.SessionNotificationsCallbackApi;
 import com.camara.qod.config.QodConfig;
+import com.camara.qod.config.RedisConfig;
 import com.camara.qod.config.ScefConfig;
 import com.camara.qod.controller.SessionApiException;
+import com.camara.qod.entity.RedisQosSession;
 import com.camara.qod.mapping.ModelMapper;
-import com.camara.qod.plugin.storage.RedisConfig;
-import com.camara.qod.plugin.storage.model.RedisQosSession;
-import com.camara.qod.plugin.storage.repository.QodSessionRepository;
+import com.camara.qod.model.QosSession;
+import com.camara.qod.repository.QodSessionRedisRepository;
 import com.camara.scef.api.ApiClient;
 import com.camara.scef.api.model.UserPlaneEvent;
 import com.qod.service.BookkeeperService;
@@ -79,7 +81,7 @@ class QodServiceImplTest {
   private static RedisServer redisServer = null;
 
   @MockBean
-  QodSessionRepository sessionRepo;
+  QodSessionRedisRepository sessionRepo;
 
   @MockBean
   SessionNotificationsCallbackApi notificationsCallbackApi;
@@ -161,6 +163,26 @@ class QodServiceImplTest {
         .withThrowableOfType(ExecutionException.class)
         .withCauseInstanceOf(ResourceAccessException.class)
         .withMessageContaining(errorMessage);
+  }
+
+  @Test
+  void handleQosNotification_completeFlow() throws Exception {
+    RedisQosSession redisQosSessionTestData = getRedisQosSessionTestData();
+    redisQosSessionTestData.setId(UUID.fromString(SESSION_UUID));
+
+    when(sessionRepo.findBySubscriptionId(anyString())).thenReturn(
+        Optional.of(redisQosSessionTestData));
+    when(sessionRepo.findById(UUID.fromString(SESSION_UUID))).thenReturn(Optional.of(RedisQosSession.builder().build()));
+    when(modelMapper.map(any(QosSession.class))).thenReturn(createSessionInfoSample());
+    String errorMessage = "I/O error on POST request for \"https://application-server.com/notifications/notifications\": "
+        + "application-server.com; nested exception is java.net.UnknownHostException: application-server.com";
+
+    doNothing().when(notificationsCallbackApi).postNotification(any(Notification.class));
+
+    final CompletableFuture<Void> result = service.handleQosNotification("123", UserPlaneEvent.SESSION_TERMINATION);
+    await().atMost(10, TimeUnit.SECONDS).until(result::isDone);
+    assertThat(result).isCompleted();
+    assertThat(result.get()).isNull();
   }
 
   @Test

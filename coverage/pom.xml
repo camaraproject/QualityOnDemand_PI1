@@ -55,6 +55,7 @@
             <exclude>**/*MapperImpl.class</exclude>
             <exclude>**/*Config$*.*</exclude>
             <exclude>**/*Exception.*</exclude>
+            <exclude>**/*Converter.*</exclude>
           </excludes>
         </configuration>
       </plugin>

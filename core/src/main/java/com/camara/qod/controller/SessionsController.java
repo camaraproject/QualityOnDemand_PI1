@@ -29,15 +29,14 @@ import com.camara.qod.controller.ExceptionHandlerAdvice.ApplicationConstants;
 import com.camara.qod.service.QodService;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressString;
+import java.net.URI;
+import java.util.Optional;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-
-import java.net.URI;
-import java.util.Optional;
-import java.util.UUID;
 
 
 /**
@@ -51,17 +50,11 @@ public class SessionsController implements SessionsApiDelegate {
   private final QodService qodService;
 
   /**
-   * POST /sessions : Creates a new session
-   * Creates a new QoS session on demand
+   * POST /sessions : Creates a new QoS session on demand.
    *
    * @param createSession Creates a new session (required)
-   * @return Session created (status code 201)
-   *         or Invalid input (status code 400)
-   *         or Unauthorized (status code 401)
-   *         or Forbidden (status code 403)
-   *         or Conflict (status code 409)
-   *         or Server error (status code 500)
-   *         or Service unavailable (status code 503)
+   * @return Session created (status code 201) or Invalid input (status code 400) or Unauthorized (status code 401) or Forbidden (status
+   *     code 403) or Conflict (status code 409) or Server error (status code 500) or Service unavailable (status code 503)
    */
   @Override
   public ResponseEntity<SessionInfo> createSession(CreateSession createSession) {
@@ -80,14 +73,11 @@ public class SessionsController implements SessionsApiDelegate {
   }
 
   /**
-   * GET /sessions/{sessionId} : Get session information
+   * GET /sessions/{sessionId} : Get session information.
    *
    * @param sessionId Session ID that was obtained from the createSession operation (required)
-   * @return Contains information about active session (status code 200)
-   *         or Unauthorized (status code 401)
-   *         or Forbidden (status code 403)
-   *         or Session not found (status code 404)
-   *         or Service unavailable (status code 503)
+   * @return Contains information about active session (status code 200) or Unauthorized (status code 401) or Forbidden (status code 403) or
+   *     Session not found (status code 404) or Service unavailable (status code 503)
    */
   @Override
   public ResponseEntity<SessionInfo> getSession(UUID sessionId) {
@@ -96,14 +86,11 @@ public class SessionsController implements SessionsApiDelegate {
   }
 
   /**
-   * DELETE /sessions/{sessionId} : Free resources related to QoS session
+   * DELETE /sessions/{sessionId} : Free resources related to QoS session.
    *
    * @param sessionId Session ID that was obtained from the createSession operation (required)
-   * @return Session deleted (status code 204)
-   *         or Unauthorized (status code 401)
-   *         or Forbidden (status code 403)
-   *         or Session not found (status code 404)
-   *         or Service unavailable (status code 503)
+   * @return Session deleted (status code 204) or Unauthorized (status code 401) or Forbidden (status code 403) or Session not found (status
+   *     code 404) or Service unavailable (status code 503)
    */
   @Override
   public ResponseEntity<Void> deleteSession(UUID sessionId) {
@@ -112,8 +99,7 @@ public class SessionsController implements SessionsApiDelegate {
   }
 
   /**
-   * Checks if network is defined with the start address,
-   * e.g. 200.24.24.0/24 and not 200.24.24.2/24
+   * Checks if network is defined with the start address, e.g. 200.24.24.0/24 and not 200.24.24.2/24.
    */
   private void validateNetwork(String network) {
     IPAddress current = new IPAddressString(network).getAddress();

@@ -27,11 +27,14 @@ import lombok.ToString;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
-/** SCEF QoS API configuration, see http://www.3gpp.org/ftp/Specs/archive/29_series/29.122/ */
+/**
+ * SCEF QoS API configuration, see <a href="http://www.3gpp.org/ftp/Specs/archive/29_series/29.122/">...</a>
+ */
 @Configuration
 @Getter
 @ToString
 public class ScefConfig {
+
   @Value("${scef.server.apiroot}")
   private String apiRoot;
 

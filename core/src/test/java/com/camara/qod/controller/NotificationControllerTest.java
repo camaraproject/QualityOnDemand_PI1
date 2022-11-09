@@ -22,8 +22,9 @@
 
 package com.camara.qod.controller;
 
-import static com.camara.qod.util.SessionsTestData.NOTIFICATION_URI;
-import static com.camara.qod.util.SessionsTestData.getNotificationRequest;
+import static com.camara.qod.util.NotificationsTestData.NOTIFICATION_URI;
+import static com.camara.qod.util.NotificationsTestData.getNotificationRequest;
+import static com.camara.qod.util.NotificationsTestData.getNotificationRequestWithEmptyTransaction;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
@@ -69,6 +70,19 @@ class NotificationControllerTest {
             .accept(MediaType.APPLICATION_PROBLEM_JSON_VALUE)
             .contentType(MediaType.APPLICATION_JSON_VALUE)
             .content(getNotificationRequest())) // UserPlaneNotificationData
+        .andDo(MockMvcResultHandlers.print())
+        .andExpect(status().isNoContent());
+  }
+
+  @Test
+  void notificationsPost_ok_EmptyTransaction() throws Exception {
+    when(qodService.handleQosNotification(anyString(), any())).thenReturn(CompletableFuture.completedFuture(null));
+
+    mockMvc.perform(MockMvcRequestBuilders
+            .post(NOTIFICATION_URI)
+            .accept(MediaType.APPLICATION_PROBLEM_JSON_VALUE)
+            .contentType(MediaType.APPLICATION_JSON_VALUE)
+            .content(getNotificationRequestWithEmptyTransaction())) // UserPlaneNotificationData
         .andDo(MockMvcResultHandlers.print())
         .andExpect(status().isNoContent());
   }

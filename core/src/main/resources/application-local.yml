@@ -7,3 +7,29 @@ scef:
 qod:
   bookkeeper:
     url: http://localhost:8082/bookkeeper
+spring:
+  datasource:
+    url: jdbc:h2:mem:sessions;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ''
+    driverClassName: org.h2.Driver
+  jpa:
+    spring.jpa.database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    defer-datasource-initialization: true
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:sql/schema.sql
+  h2:
+    console.enabled: true
+databases:
+  redis:
+    enabled: false
+  h2:
+    enabled: true
+management:
+  health:
+    redis:
+      enabled: false

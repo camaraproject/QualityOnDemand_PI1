@@ -10,6 +10,7 @@ Make sure Maven 3 or greater and JDK 17 are installed on your system.
 
 Please ensure, that the prerequisites are fulfilled.
 To run a QoD API locally, you have to follow these steps:
+
 * Build
 * Create Database
 * Start QoD API
@@ -18,10 +19,14 @@ To run a QoD API locally, you have to follow these steps:
 
 Build the project by running ```mvn clean package```
 
-#### Create Database
+#### Create Redis-Database (optional)
 
-The QoD API needs a Redis database to persist the session data. 
-Therefore you can use a local instance of Redis DB or start Redis from Docker container:
+The creation of a Redis-Database is only needed if you use another profile than **'local'**.
+Otherwise, QoD API will use an in-memory H2-database.
+
+If a profile is used different to **'local'**, the QoD API needs a Redis database to persist the session data.
+Therefore, you can use a local instance of Redis DB or start Redis from Docker container:
+
 * start Redis from Docker container by running ```docker run --name qos-redis -p 6379:6379 -d redis```
 * local instance on Windows: https://github.com/zkteco-home/redis-windows
 * local instance on Linux: https://redis.io/docs/getting-started/installation/install-redis-on-linux/
@@ -31,14 +36,18 @@ Therefore you can use a local instance of Redis DB or start Redis from Docker co
 For information about how to configure the QoD API, please refer to the next section "Configuration".
 
 Start the qod-api service from terminal or from an IDE or with docker
-* from terminal:```java --add-opens=java.base/java.net=ALL-UNNAMED -Dfile.encoding=UTF-8 -jar core\target\senf-core-<current version>.jar -Dspring.profiles.active=local```
+
+* from
+  terminal:```java --add-opens=java.base/java.net=ALL-UNNAMED -Dfile.encoding=UTF-8 -jar core\target\senf-core-<current version>.jar -Dspring.profiles.active=local```
 * from an IDE: Application can also be started directly from an IDE like IntelliJ, Eclipse, etc. by passing VM
   options in the "Run Configuration":
-  * --add-opens=java.base/java.net=ALL-UNNAMED
-  * -Dspring.profiles.active=local
-* with docker: 
-  * ```docker build -t qod-api . ```
-  * ```docker run -dp 9091:9091 -p 9092:9092 qod-api```
+    * --add-opens=java.base/java.net=ALL-UNNAMED
+    * -Dspring.profiles.active=local
+* with docker:
+    * ```docker build -t qod-api . ```
+    * ```docker run -dp 9091:9091 -p 9092:9092 qod-api```
+
+With the 'local'-profile the application will automatically connect to an in-memory H2-database.
 
 ## Configuration
 
@@ -81,18 +90,18 @@ share the results with the community.
 
 ## Contribution
 
-Contribution and feedback is always welcome. For information how to contribute, please refer to our 
+Contribution and feedback is always welcome. For information how to contribute, please refer to our
 [Contribution Guideline](https://github.com/camaraproject/Governance/blob/main/CONTRIBUTING.md)
 
 ## License
 
 Copyright (c) 2022 Contributors | Deutsche Telekom AG to CAMARA a Series of LF Projects, LLC
 
-All contributors / copyright owners license this file to you under the Apache License, Version 2.0 (the "License"); you 
+All contributors / copyright owners license this file to you under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You may obtain a copy of the License at
 
 http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an
-"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.

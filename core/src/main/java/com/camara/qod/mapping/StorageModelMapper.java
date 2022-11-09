@@ -22,16 +22,35 @@
 
 package com.camara.qod.mapping;
 
-import com.camara.qod.api.model.SessionInfo;
+import com.camara.qod.entity.H2QosSession;
+import com.camara.qod.entity.RedisQosSession;
 import com.camara.qod.model.QosSession;
+import com.camara.qod.model.QosSessionIdWithExpiration;
+import java.util.List;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.springframework.data.redis.core.ZSetOperations;
 
 /**
- * Maps the CreateSession model to the SessionsInfo model.
+ * Maps the QosSession model to the SessionsInfo model.
  */
 @Mapper(componentModel = "spring")
-public interface ModelMapper {
+public interface StorageModelMapper {
 
-  SessionInfo map(QosSession qosSession);
+  //Redis Operations
+  RedisQosSession mapToRedisQosSession(QosSession qosSession);
+
+  //H2 Operations
+  H2QosSession mapToH2QosSession(QosSession qosSession);
+
+  QosSession mapToLibraryQosSession(H2QosSession redisQosSession);
+
+  QosSession mapToLibraryQosSession(RedisQosSession redisQosSession);
+
+  @Mapping(target = "id", expression = "java(java.util.UUID.fromString(redisSet.getValue()))")
+  @Mapping(target = "expiresAt", expression = "java(redisSet.getScore().longValue())")
+  QosSessionIdWithExpiration mapToList(ZSetOperations.TypedTuple<String> redisSet);
+
+  List<QosSessionIdWithExpiration> mapToList(List<H2QosSession> h2QosSessions);
 
 }

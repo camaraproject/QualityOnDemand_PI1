@@ -52,17 +52,14 @@ public class ExceptionHandlerAdvice {
   @ExceptionHandler(SessionApiException.class)
   public ResponseEntity<ErrorInfo> handleException(SessionApiException e) {
     log.error("Session API exception raised: ", e);
-    return ResponseEntity.status(e.getHttpStatus())
-        .contentType(MediaType.APPLICATION_JSON)
-        .body(new ErrorInfo().code(e.getConstant())
-            .message(e.getMessage()));
+    return ResponseEntity.status(e.getHttpStatus()).contentType(MediaType.APPLICATION_JSON)
+        .body(new ErrorInfo().code(e.getConstant()).message(e.getMessage()));
   }
 
   /**
    * This function handles an occurred exception and puts the information into an HTTP response.
    *
-   * @param e Exception, that is caused by Spring validations (e.g. parameter outside allowed
-   *          range)
+   * @param e Exception, that is caused by Spring validations (e.g. parameter outside allowed range)
    * @return HTTP response entity with status code and error description
    */
   @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -74,11 +71,9 @@ public class ExceptionHandlerAdvice {
     if (fe != null) {
       field = fe.getField();
     }
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-        .contentType(MediaType.APPLICATION_JSON)
-        .body(new ErrorInfo().code(e.toString().contains("rejected value [null]") ?
-                ApplicationConstants.PARAMETER_MISSING.name() : ApplicationConstants.VALIDATION_FAILED.name())
-            .message("Validation failed for parameter '" + field + "'"));
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON).body(new ErrorInfo().code(
+        e.toString().contains("rejected value [null]") ? ApplicationConstants.PARAMETER_MISSING.name()
+            : ApplicationConstants.VALIDATION_FAILED.name()).message("Validation failed for parameter '" + field + "'"));
   }
 
   /**
@@ -90,28 +85,23 @@ public class ExceptionHandlerAdvice {
   @ExceptionHandler(ValueInstantiationException.class)
   public ResponseEntity<ErrorInfo> handleException(ValueInstantiationException e) {
     log.error("ValueInstantiationException raised: ", e);
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-        .contentType(MediaType.APPLICATION_JSON)
-        .body(
-            new ErrorInfo().code(ApplicationConstants.VALIDATION_FAILED.name())
-                .message("Schema validation failed at " + e.getPath().get(0).getFieldName()));
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON).body(
+        new ErrorInfo().code(ApplicationConstants.VALIDATION_FAILED.name())
+            .message("Schema validation failed at " + e.getPath().get(0).getFieldName()));
   }
 
   /**
    * This function handles an occurred exception and puts the information into an HTTP response.
    *
-   * @param e Exception, that is caused by Spring validations
-   *          (e.g. passing a wrong type)
+   * @param e Exception, that is caused by Spring validations (e.g. passing a wrong type)
    * @return HTTP response entity with status code and error description
    */
   @ExceptionHandler(InvalidFormatException.class)
-  public ResponseEntity<ErrorInfo> handleException(InvalidFormatException e){
+  public ResponseEntity<ErrorInfo> handleException(InvalidFormatException e) {
     log.error("InvalidFormatException raised: ", e);
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-        .contentType(MediaType.APPLICATION_JSON)
-        .body(new ErrorInfo().code(ApplicationConstants.INVALID_INPUT.name())
-            .message("Required: " + e.getTargetType().getSimpleName() +
-                ", provided: '" + e.getValue().toString() + "'"));
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON).body(
+        new ErrorInfo().code(ApplicationConstants.INVALID_INPUT.name())
+            .message("Required: " + e.getTargetType().getSimpleName() + ", provided: '" + e.getValue().toString() + "'"));
   }
 
   public enum ApplicationConstants {

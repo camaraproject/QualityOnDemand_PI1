@@ -46,7 +46,8 @@ public class NotificationsController implements NotificationsApiDelegate {
   private final QodService qodService;
 
   /**
-   * POST /notifications : notify bearer level event(s) from the SCEF to the SCS/AS
+   * POST /notifications : notify bearer level event(s) from the SCEF to the SCS/AS.
+   *
    * @see NotificationsApi#notificationsPost
    */
   @Override

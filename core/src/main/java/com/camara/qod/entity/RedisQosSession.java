@@ -20,31 +20,35 @@
  * ---license-end
  */
 
-package com.camara.qod.commons;
+package com.camara.qod.entity;
 
-import lombok.AccessLevel;
+import com.camara.qod.api.model.AsId;
+import com.camara.qod.api.model.PortsSpec;
+import com.camara.qod.api.model.UeId;
+import com.camara.qod.model.QosSession;
+import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+import org.springframework.data.redis.core.RedisHash;
+import org.springframework.data.redis.core.index.Indexed;
 
 /**
- * This class contains utility functions.
+ * This is the QoS Session subscription resource.
  */
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
-public final class Util {
+@Data
+@SuperBuilder
+@RedisHash("QoSSession")
+@NoArgsConstructor
+public class RedisQosSession extends QosSession {
 
-  /**
-   * Returns the subscription id of a given subscription URI.
-   *
-   * @param subscriptionUri URI of the subscription
-   * @return subscriptionId
-   */
-  public static String subscriptionId(String subscriptionUri) {
-    if (subscriptionUri == null) {
-      return null;
-    }
-    String[] split = subscriptionUri.split("subscriptions/");
-    if (split.length == 0) {
-      return null;
-    }
-    return split[split.length - 1];
-  }
+  @Indexed
+  private String ueIpv4addr;
+  @Indexed
+  private UeId ueId;
+  @Indexed
+  private AsId asId;
+  @Indexed
+  private PortsSpec uePorts;
+  @Indexed
+  private PortsSpec asPorts;
 }

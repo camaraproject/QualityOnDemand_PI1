@@ -51,6 +51,7 @@ import com.camara.qod.api.model.PortsSpecRanges;
 import com.camara.qod.api.model.QosProfile;
 import com.camara.qod.api.model.SessionInfo;
 import com.camara.qod.config.QodConfig;
+import com.camara.qod.config.ScefConfig;
 import com.camara.scef.api.model.AsSessionWithQoSSubscription;
 import com.camara.scef.api.model.UserPlaneNotificationData;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -69,6 +70,8 @@ import javax.validation.Validator;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -76,6 +79,7 @@ import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.util.ReflectionTestUtils;
 import redis.embedded.RedisServer;
 
 @SpringBootTest(webEnvironment = WebEnvironment.MOCK)
@@ -95,6 +99,8 @@ class SessionsControllerIntegrationTest {
   Boolean bookkeeperEnabled;
   @Autowired
   QodConfig qodConfig;
+  @Autowired
+  ScefConfig scefConfig;
   Integer defaultDuration = 2;
   Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
   UUID sessionId;
@@ -113,6 +119,7 @@ class SessionsControllerIntegrationTest {
   public static void tearDown() {
     redisServer.stop();
   }
+
   @Test
   void getKnownSession() throws JsonProcessingException {
     stubForCreateSubscription();
@@ -134,15 +141,17 @@ class SessionsControllerIntegrationTest {
     assertSame(HttpStatus.NOT_FOUND, exception.getHttpStatus());
   }
 
-  @Test
-  void createAndDeleteSession() throws JsonProcessingException {
+  @ParameterizedTest
+  @EnumSource(QosProfile.class)
+  void createAndDeleteSessionWithQosProfiles(QosProfile qosProfile) throws JsonProcessingException {
+    ReflectionTestUtils.setField(scefConfig, "flowIdQosL", 6);
     stubForCreateSubscription();
     stubForDeleteSubscription();
     stubForBookkeeperAvailabilityRequest(true);
     stubForBookkeeperBookingRequest();
     stubForBookkeeperDeleteBookingRequest();
 
-    UUID sessionId = createSession(createTestSession(QosProfile.E));
+    UUID sessionId = createSession(createTestSession(qosProfile));
     deleteSession(sessionId);
   }
 
@@ -234,7 +243,9 @@ class SessionsControllerIntegrationTest {
     assertTrue(exception.getMessage().contains("already active"));
 
     // permitted because of different ports
-    UUID sessionIdTwo = createSession(createTestSession(QosProfile.E, new AsId().ipv4addr("200.24.24.0/24"), new PortsSpec().ports(Collections.singletonList(6001)), defaultDuration));
+    UUID sessionIdTwo = createSession(
+        createTestSession(QosProfile.E, new AsId().ipv4addr("200.24.24.0/24"), new PortsSpec().ports(Collections.singletonList(6001)),
+            defaultDuration));
 
     deleteSession(sessionId);
     deleteSession(sessionIdTwo);
@@ -242,16 +253,20 @@ class SessionsControllerIntegrationTest {
 
   @Test
   void createSessionDurationNotValid() {
-    CreateSession session1 = createTestSession(QosProfile.E, new AsId().ipv4addr("200.24.24.0"), new PortsSpec().ports(Collections.singletonList(5000)), 0);
+    CreateSession session1 = createTestSession(QosProfile.E, new AsId().ipv4addr("200.24.24.0"),
+        new PortsSpec().ports(Collections.singletonList(5000)), 0);
     assertEquals(1, validator.validate(session1).size());
 
-    CreateSession session2 = createTestSession(QosProfile.E, new AsId().ipv4addr("200.24.24.0"), new PortsSpec().ports(Collections.singletonList(5000)), 86401);
+    CreateSession session2 = createTestSession(QosProfile.E, new AsId().ipv4addr("200.24.24.0"),
+        new PortsSpec().ports(Collections.singletonList(5000)), 86401);
     assertEquals(1, validator.validate(session2).size());
 
-    CreateSession session3 = createTestSession(QosProfile.E, new AsId().ipv4addr("200.24.24.0"), new PortsSpec().ports(Collections.singletonList(5000)), 1);
+    CreateSession session3 = createTestSession(QosProfile.E, new AsId().ipv4addr("200.24.24.0"),
+        new PortsSpec().ports(Collections.singletonList(5000)), 1);
     assertTrue(validator.validate(session3).isEmpty());
 
-    CreateSession session4 = createTestSession(QosProfile.E, new AsId().ipv4addr("200.24.24.0"), new PortsSpec().ports(Collections.singletonList(5000)), 86400);
+    CreateSession session4 = createTestSession(QosProfile.E, new AsId().ipv4addr("200.24.24.0"),
+        new PortsSpec().ports(Collections.singletonList(5000)), 86400);
     assertTrue(validator.validate(session4).isEmpty());
 
   }
@@ -291,8 +306,9 @@ class SessionsControllerIntegrationTest {
 
   @Test
   void createSessionPortsRangeNotValid() {
-    CreateSession session = createTestSession(QosProfile.E, new AsId().ipv4addr("200.24.24.3"), new PortsSpec().ranges(Collections.singletonList(new PortsSpecRanges().from(9000).to(8000)))
-                            .ports(Collections.singletonList(1000)), defaultDuration);
+    CreateSession session = createTestSession(QosProfile.E, new AsId().ipv4addr("200.24.24.3"),
+        new PortsSpec().ranges(Collections.singletonList(new PortsSpecRanges().from(9000).to(8000)))
+            .ports(Collections.singletonList(1000)), defaultDuration);
     SessionApiException exception = assertThrows(SessionApiException.class, () -> api.createSession(session));
     assertTrue(exception.getMessage().contains("not valid"));
     assertSame(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
@@ -314,7 +330,8 @@ class SessionsControllerIntegrationTest {
     stubForBookkeeperBookingRequest();
     stubForBookkeeperDeleteBookingErrorRequest();
 
-    UUID sessionId = createSession(createTestSession(QosProfile.E, new AsId().ipv4addr("200.24.24.3"), new PortsSpec().ports(Collections.singletonList(1000)), 1));
+    UUID sessionId = createSession(
+        createTestSession(QosProfile.E, new AsId().ipv4addr("200.24.24.3"), new PortsSpec().ports(Collections.singletonList(1000)), 1));
 
     SessionApiException exception = assertThrows(SessionApiException.class, () -> api.deleteSession(sessionId));
     assertTrue(exception.getMessage().contains("The service is currently not available"));
