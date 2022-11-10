@@ -448,6 +448,7 @@ public class QodServiceImpl implements QodService {
       assert responseBody != null;
       return UUID.fromString(responseBody);
     } catch (FeignException e) {
+      log.error("Problem by calling availability service: ", e);
       throw new SessionApiException(HttpStatus.SERVICE_UNAVAILABLE, "The availability service is currently not available");
     }
   }
