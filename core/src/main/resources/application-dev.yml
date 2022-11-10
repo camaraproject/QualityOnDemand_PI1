@@ -7,6 +7,11 @@ senf:
   rest:
     baseurl: https://3gppserver.unknown/v1
 
+qod:
+  availability:
+    enabled: true
+    url: https://dev-availability.caas-t03.telekom.de
+
 # Health
 management:
   server:
