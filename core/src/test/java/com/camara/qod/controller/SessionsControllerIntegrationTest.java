@@ -59,9 +59,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.http.Fault;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import javax.validation.ConstraintViolation;
@@ -95,8 +93,8 @@ class SessionsControllerIntegrationTest {
   SessionsApi api;
   @Value("${qod.mask-sensible-data}")
   Boolean maskSensibleData;
-  @Value("${qod.bookkeeper.enabled}")
-  Boolean bookkeeperEnabled;
+  @Value("${qod.availability.enabled}")
+  Boolean availabilityEnabled;
   @Autowired
   QodConfig qodConfig;
   @Autowired
@@ -124,9 +122,9 @@ class SessionsControllerIntegrationTest {
   void getKnownSession() throws JsonProcessingException {
     stubForCreateSubscription();
     stubForDeleteSubscription();
-    stubForBookkeeperAvailabilityRequest(true);
-    stubForBookkeeperBookingRequest();
-    stubForBookkeeperDeleteBookingRequest();
+    stubForAvailabilityServiceCheckRequest(true);
+    stubForAvailabilityServiceCreateRequest();
+    stubForAvailabilityServiceDeleteRequest();
 
     UUID sessionId = createSession(createTestSession(QosProfile.E));
     assertSame(HttpStatus.OK, api.getSession(sessionId).getStatusCode());
@@ -147,9 +145,9 @@ class SessionsControllerIntegrationTest {
     ReflectionTestUtils.setField(scefConfig, "flowIdQosL", 6);
     stubForCreateSubscription();
     stubForDeleteSubscription();
-    stubForBookkeeperAvailabilityRequest(true);
-    stubForBookkeeperBookingRequest();
-    stubForBookkeeperDeleteBookingRequest();
+    stubForAvailabilityServiceCheckRequest(true);
+    stubForAvailabilityServiceCreateRequest();
+    stubForAvailabilityServiceDeleteRequest();
 
     UUID sessionId = createSession(createTestSession(qosProfile));
     deleteSession(sessionId);
@@ -159,9 +157,9 @@ class SessionsControllerIntegrationTest {
   void createUnsubscribedSession() throws JsonProcessingException {
     stubForCreateInvalidSubscription();
     stubForDeleteSubscription();
-    stubForBookkeeperAvailabilityRequest(true);
-    stubForBookkeeperBookingRequest();
-    stubForBookkeeperDeleteBookingRequest();
+    stubForAvailabilityServiceCheckRequest(true);
+    stubForAvailabilityServiceCreateRequest();
+    stubForAvailabilityServiceDeleteRequest();
 
     CreateSession createSession = createTestSession(QosProfile.E);
 
@@ -174,15 +172,15 @@ class SessionsControllerIntegrationTest {
   void createSessionBookkeeperCapacityNotAvailable() throws JsonProcessingException {
     stubForCreateSubscription();
     stubForDeleteSubscription();
-    stubForBookkeeperAvailabilityRequest(false);
-    stubForBookkeeperBookingRequest();
-    stubForBookkeeperDeleteBookingRequest();
+    stubForAvailabilityServiceCheckRequest(false);
+    stubForAvailabilityServiceCreateRequest();
+    stubForAvailabilityServiceDeleteRequest();
 
-    if (bookkeeperEnabled) {
+    if (availabilityEnabled) {
       CreateSession session = createTestSession(QosProfile.E);
       SessionApiException exception = assertThrows(SessionApiException.class, () -> api.createSession(session));
-      assertTrue(exception.getMessage().contains("Requested QoS session is currently not available"));
-      assertSame(HttpStatus.CONFLICT, exception.getHttpStatus());
+      assertEquals("The availability service is currently not available", exception.getMessage());
+      assertSame(HttpStatus.SERVICE_UNAVAILABLE, exception.getHttpStatus());
     } else {
       UUID sessionId = createSession(createTestSession(QosProfile.E));
       deleteSession(sessionId);
@@ -194,23 +192,22 @@ class SessionsControllerIntegrationTest {
     stubForCreateSubscription();
     stubForDeleteSubscription();
     stubForBookkeeperAvailabilityErrorRequest();
-    stubForBookkeeperBookingRequest();
-    stubForBookkeeperDeleteBookingRequest();
+    stubForAvailabilityServiceCreateRequest();
+    stubForAvailabilityServiceDeleteRequest();
 
     CreateSession session = createTestSession(QosProfile.E);
     SessionApiException exception = assertThrows(SessionApiException.class, () -> api.createSession(session));
-    assertTrue(exception.getMessage().contains("The service is currently not available"));
+    assertEquals("The availability service is currently not available", exception.getMessage());
     assertSame(HttpStatus.SERVICE_UNAVAILABLE, exception.getHttpStatus());
   }
-
 
   @Test
   void createSessionAlreadyActiveNotPermitted() throws JsonProcessingException {
     stubForCreateSubscription();
     stubForDeleteSubscription();
-    stubForBookkeeperAvailabilityRequest(true);
-    stubForBookkeeperBookingRequest();
-    stubForBookkeeperDeleteBookingRequest();
+    stubForAvailabilityServiceCheckRequest(true);
+    stubForAvailabilityServiceCreateRequest();
+    stubForAvailabilityServiceDeleteRequest();
 
     sessionId = createSession(createTestSession(QosProfile.E));
     CreateSession session = createTestSession(QosProfile.E);
@@ -230,9 +227,9 @@ class SessionsControllerIntegrationTest {
   void createOnlyValidSessions() throws JsonProcessingException {
     stubForCreateSubscription();
     stubForDeleteSubscription();
-    stubForBookkeeperAvailabilityRequest(true);
-    stubForBookkeeperBookingRequest();
-    stubForBookkeeperDeleteBookingRequest();
+    stubForAvailabilityServiceCheckRequest(true);
+    stubForAvailabilityServiceCreateRequest();
+    stubForAvailabilityServiceDeleteRequest();
 
     UUID sessionId = createSession(createTestSession(QosProfile.E, new AsId().ipv4addr("200.24.24.0/24"),
         new PortsSpec().ports(List.of(6000)).ranges(List.of(new PortsSpecRanges().from(5000).to(5002))), defaultDuration));
@@ -326,18 +323,18 @@ class SessionsControllerIntegrationTest {
   void deleteSessionBookkeeperError() throws JsonProcessingException {
     stubForCreateSubscription();
     stubForDeleteSubscription();
-    stubForBookkeeperAvailabilityRequest(true);
-    stubForBookkeeperBookingRequest();
-    stubForBookkeeperDeleteBookingErrorRequest();
+    stubForAvailabilityServiceCheckRequest(true);
+    stubForAvailabilityServiceCreateRequest();
+    stubForAvailabilityServiceDeleteErrorRequest();
 
     UUID sessionId = createSession(
         createTestSession(QosProfile.E, new AsId().ipv4addr("200.24.24.3"), new PortsSpec().ports(Collections.singletonList(1000)), 1));
 
     SessionApiException exception = assertThrows(SessionApiException.class, () -> api.deleteSession(sessionId));
-    assertTrue(exception.getMessage().contains("The service is currently not available"));
+    assertEquals("The availability service is currently not available", exception.getMessage());
     assertSame(HttpStatus.SERVICE_UNAVAILABLE, exception.getHttpStatus());
 
-    stubForBookkeeperDeleteBookingRequest();
+    stubForAvailabilityServiceDeleteRequest();
     deleteSession(sessionId);
   }
 
@@ -345,9 +342,9 @@ class SessionsControllerIntegrationTest {
   void deleteSessionNefError() throws JsonProcessingException {
     stubForCreateSubscription();
     stubForDeleteErrorSubscription();
-    stubForBookkeeperAvailabilityRequest(true);
-    stubForBookkeeperBookingRequest();
-    stubForBookkeeperDeleteBookingRequest();
+    stubForAvailabilityServiceCheckRequest(true);
+    stubForAvailabilityServiceCreateRequest();
+    stubForAvailabilityServiceDeleteRequest();
 
     UUID sessionId = createSession(createTestSession(QosProfile.E));
 
@@ -360,9 +357,9 @@ class SessionsControllerIntegrationTest {
   void expireSession() throws JsonProcessingException, InterruptedException {
     stubForCreateSubscription();
     stubForDeleteSubscription();
-    stubForBookkeeperAvailabilityRequest(true);
-    stubForBookkeeperBookingRequest();
-    stubForBookkeeperDeleteBookingRequest();
+    stubForAvailabilityServiceCheckRequest(true);
+    stubForAvailabilityServiceCreateRequest();
+    stubForAvailabilityServiceDeleteRequest();
 
     UUID sessionId = createSession(createTestSession(QosProfile.E));
     sessionFound(sessionId);
@@ -377,16 +374,16 @@ class SessionsControllerIntegrationTest {
   void createSessionWithWarning() throws JsonProcessingException {
     stubForCreateSubscription();
     stubForDeleteSubscription();
-    stubForBookkeeperAvailabilityRequest(true);
-    stubForBookkeeperBookingRequest();
-    stubForBookkeeperDeleteBookingRequest();
+    stubForAvailabilityServiceCheckRequest(true);
+    stubForAvailabilityServiceCreateRequest();
+    stubForAvailabilityServiceDeleteRequest();
     ResponseEntity<SessionInfo> response = api.createSession(createTestSession(QosProfile.E, new AsId().ipv4addr("10.1.0.0/24")));
-    if (bookkeeperEnabled) {
-      verify(postRequestedFor(urlPathEqualTo("/checkServiceQualification")));
-      verify(postRequestedFor(urlPathEqualTo("/service")));
+    if (availabilityEnabled) {
+      verify(postRequestedFor(urlPathEqualTo("/api/v1/session/check")));
+      verify(postRequestedFor(urlPathEqualTo("/api/v1/session")));
     } else {
-      verify(0, postRequestedFor(urlPathEqualTo("/checkServiceQualification")));
-      verify(0, postRequestedFor(urlPathEqualTo("/service")));
+      verify(0, postRequestedFor(urlPathEqualTo("/api/v1/session/check")));
+      verify(0, postRequestedFor(urlPathEqualTo("/api/v1/session")));
     }
     assertNotNull(response);
     assertEquals(HttpStatus.CREATED, response.getStatusCode());
@@ -395,15 +392,14 @@ class SessionsControllerIntegrationTest {
     assertSame(Message.SeverityEnum.WARNING, response.getBody().getMessages().get(0).getSeverity());
   }
 
-
   private UUID createSession(CreateSession createSession) {
     ResponseEntity<SessionInfo> response = api.createSession(createSession);
-    if (bookkeeperEnabled) {
-      verify(postRequestedFor(urlPathEqualTo("/checkServiceQualification")));
-      verify(postRequestedFor(urlPathEqualTo("/service")));
+    if (availabilityEnabled) {
+      verify(postRequestedFor(urlPathEqualTo("/api/v1/session/check")));
+      verify(postRequestedFor(urlPathEqualTo("/api/v1/session")));
     } else {
-      verify(0, postRequestedFor(urlPathEqualTo("/checkServiceQualification")));
-      verify(0, postRequestedFor(urlPathEqualTo("/service")));
+      verify(0, postRequestedFor(urlPathEqualTo("/api/v1/session/check")));
+      verify(0, postRequestedFor(urlPathEqualTo("/api/v1/session")));
     }
     assertNotNull(response);
     assertEquals(HttpStatus.CREATED, response.getStatusCode());
@@ -420,10 +416,10 @@ class SessionsControllerIntegrationTest {
 
   private void deleteSession(UUID sessionId) {
     ResponseEntity<Void> response = api.deleteSession(sessionId);
-    if (bookkeeperEnabled) {
-      verify(deleteRequestedFor(urlPathMatching("/service/([a-zA-Z0-9/-]*)")));
+    if (availabilityEnabled) {
+      verify(deleteRequestedFor(urlPathMatching("/api/v1/session/([a-zA-Z0-9/-]*)")));
     } else {
-      verify(0, deleteRequestedFor(urlPathMatching("/service/([a-zA-Z0-9/-]*)")));
+      verify(0, deleteRequestedFor(urlPathMatching("/api/v1/session/([a-zA-Z0-9/-]*)")));
     }
     assertNotNull(response);
     assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
@@ -477,42 +473,31 @@ class SessionsControllerIntegrationTest {
     return objectMapper.writeValueAsString(notificationData);
   }
 
-  private void stubForBookkeeperAvailabilityRequest(Boolean isSuccessful) throws JsonProcessingException {
-    stubFor(post("/checkServiceQualification").willReturn(
-        created().withHeader("Content-Type", "application/json").withBody(bookkeeperAvailabilityJsonString(isSuccessful))));
+  private void stubForAvailabilityServiceCheckRequest(Boolean isSuccessful) throws JsonProcessingException {
+    if (isSuccessful) {
+      stubFor(post("/api/v1/session/check").willReturn(
+          created().withHeader("Content-Type", "application/json").withStatus(204)));
+    } else {
+      stubFor(post("/api/v1/session/check").willReturn(
+          created().withHeader("Content-Type", "application/json").withStatus(400)));
+    }
   }
 
   private void stubForBookkeeperAvailabilityErrorRequest() {
     stubFor(post("/checkServiceQualification").willReturn(aResponse().withFault(Fault.EMPTY_RESPONSE)));
   }
 
-  private void stubForBookkeeperBookingRequest() throws JsonProcessingException {
-    stubFor(post("/service").willReturn(created().withHeader("Content-Type", "application/json").withBody(bookkeeperBookingJsonString())));
+  private void stubForAvailabilityServiceCreateRequest() throws JsonProcessingException {
+    stubFor(post("/api/v1/session").willReturn(
+        created().withHeader("Content-Type", "application/json").withBody("3fa85f64-5717-4562-b3fc-2c963f66afa6")));
   }
 
-  private void stubForBookkeeperDeleteBookingRequest() {
-    stubFor(delete(urlPathMatching("/service/([a-zA-Z0-9/-]*)")).willReturn(noContent()));
+  private void stubForAvailabilityServiceDeleteRequest() {
+    stubFor(delete(urlPathMatching("/api/v1/session/([a-zA-Z0-9/-]*)")).willReturn(noContent()));
   }
 
-  private void stubForBookkeeperDeleteBookingErrorRequest() {
-    stubFor(delete(urlPathMatching("/service/([a-zA-Z0-9/-]*)")).willReturn(aResponse().withFault(Fault.EMPTY_RESPONSE)));
-  }
-
-  private String bookkeeperAvailabilityJsonString(Boolean isSuccessful) throws JsonProcessingException {
-    ObjectMapper objectMapper = new ObjectMapper();
-
-    Map<String, String> availabilityData = new HashMap<>();
-    availabilityData.put("qualificationResult", isSuccessful ? "qualified" : "unqualified");
-    return objectMapper.writeValueAsString(availabilityData);
-  }
-
-  private String bookkeeperBookingJsonString() throws JsonProcessingException {
-    ObjectMapper objectMapper = new ObjectMapper();
-
-    Map<String, String> bookingData = new HashMap<>();
-    bookingData.put("state", "active");
-    bookingData.put("id", "57bccde0-2a81-4b05-ab89-0bb80bb9fe63");
-    return objectMapper.writeValueAsString(bookingData);
+  private void stubForAvailabilityServiceDeleteErrorRequest() {
+    stubFor(delete(urlPathMatching("/api/v1/session/([a-zA-Z0-9/-]*)")).willReturn(aResponse().withFault(Fault.EMPTY_RESPONSE)));
   }
 
 }

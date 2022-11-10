@@ -42,9 +42,9 @@ qod:
     lock-time: 2
   mask-sensible-data: true # if set to true, sensible data is masked in response body
   allow-multiple-ueaddr: true # if set to true, network segments are allowed for ueAddr
-  bookkeeper:
-    enabled: false # if set to true, bookkeeper service is requested for availability of requested size
-    url: http://localhost:8082/bookkeeper
+  availability:
+    enabled: true
+    url: http://localhost:8091
 # Logging
 logging:
   file:

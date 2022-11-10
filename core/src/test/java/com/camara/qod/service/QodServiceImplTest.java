@@ -46,12 +46,12 @@ import com.camara.qod.config.RedisConfig;
 import com.camara.qod.config.ScefConfig;
 import com.camara.qod.controller.SessionApiException;
 import com.camara.qod.entity.RedisQosSession;
+import com.camara.qod.feign.AvailabilityServiceClient;
 import com.camara.qod.mapping.ModelMapper;
 import com.camara.qod.model.QosSession;
 import com.camara.qod.repository.QodSessionRedisRepository;
 import com.camara.scef.api.ApiClient;
 import com.camara.scef.api.model.UserPlaneEvent;
-import com.qod.service.BookkeeperService;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
@@ -90,7 +90,7 @@ class QodServiceImplTest {
   ModelMapper modelMapper;
 
   @MockBean
-  BookkeeperService bookkeeperService;
+  AvailabilityServiceClient avsClient;
 
   @MockBean
   @Qualifier("com.camara.scef.api.ApiClient")

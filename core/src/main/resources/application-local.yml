@@ -5,8 +5,8 @@ scef:
   debug: true
 
 qod:
-  bookkeeper:
-    url: http://localhost:8082/bookkeeper
+  availability:
+    url: http://localhost:8091
 spring:
   datasource:
     url: jdbc:h2:mem:sessions;DB_CLOSE_DELAY=-1

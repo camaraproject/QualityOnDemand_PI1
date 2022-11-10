@@ -55,7 +55,6 @@ public class QosSession {
   private QosProfile qos;
   private URI notificationUri;
   private String notificationAuthToken;
-  private long
-      expirationLockUntil; // The lock ensures, that the task is only scheduled once for expiration.
+  private long expirationLockUntil; // The lock ensures, that the task is only scheduled once for expiration.
   private UUID bookkeeperId;
 }

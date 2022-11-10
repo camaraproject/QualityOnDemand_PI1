@@ -56,8 +56,8 @@ public class QodConfig {
   private Boolean qosMaskSensibleData;
   @Value("${qod.allow-multiple-ueaddr}")
   private Boolean qosAllowMultipleUeAddr;
-  @Value("${qod.bookkeeper.enabled}")
-  private Boolean qosBookkeeperEnabled;
-  @Value("${qod.bookkeeper.url}")
-  private String qosBookkeeperUrl;
+  @Value("${qod.availability.enabled}")
+  private Boolean qosAvailabilityEnabled;
+  @Value("${qod.availability.url}")
+  private String qosAvailabilityUrl;
 }

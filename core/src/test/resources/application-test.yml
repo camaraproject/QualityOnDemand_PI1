@@ -12,8 +12,8 @@ qod:
     time-before-handling: 20
     trigger-interval: 1
     lock-time: 2
-  bookkeeper:
-    enabled: true # if set to true, bookkeeper service is requested for availability of requested size
+  availability:
+    enabled: true # if set to true, availability service is requested of requested size
     url: http://localhost:9000
 
 # Redis

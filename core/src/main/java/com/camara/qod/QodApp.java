@@ -27,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.EnableSchedulerLock;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -35,10 +36,11 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication
 @ComponentScan({"com.camara.qod", "com.camara.scef"})
 @EnableAsync
+@EnableFeignClients
 @EnableScheduling
 @EnableSchedulerLock(defaultLockAtMostFor = "1m")
 @Generated
-public class MainApp {
+public class QodApp {
 
   /**
    * The main Method.
@@ -48,6 +50,6 @@ public class MainApp {
   public static void main(String[] args) {
 
     log.info("Starting qod-api-service with {} args.", args.length);
-    SpringApplication.run(MainApp.class, args);
+    SpringApplication.run(QodApp.class, args);
   }
 }
