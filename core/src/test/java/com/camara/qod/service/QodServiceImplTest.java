@@ -47,7 +47,7 @@ import com.camara.qod.config.ScefConfig;
 import com.camara.qod.controller.SessionApiException;
 import com.camara.qod.entity.RedisQosSession;
 import com.camara.qod.feign.AvailabilityServiceClient;
-import com.camara.qod.mapping.ModelMapper;
+import com.camara.qod.mapping.SessionModelMapper;
 import com.camara.qod.model.QosSession;
 import com.camara.qod.repository.QodSessionRedisRepository;
 import com.camara.scef.api.ApiClient;
@@ -87,7 +87,7 @@ class QodServiceImplTest {
   SessionNotificationsCallbackApi notificationsCallbackApi;
 
   @MockBean
-  ModelMapper modelMapper;
+  SessionModelMapper sessionModelMapper;
 
   @MockBean
   AvailabilityServiceClient avsClient;
@@ -138,7 +138,7 @@ class QodServiceImplTest {
     when(sessionRepo.findById(UUID.fromString(SESSION_UUID))).thenReturn(Optional.of(RedisQosSession.builder().build()));
     SessionInfo info = createSessionInfoSample();
     info.setNotificationUri(null);
-    when(modelMapper.map(any(QosSession.class))).thenReturn(info);
+    when(sessionModelMapper.map(any(QosSession.class))).thenReturn(info);
     final CompletableFuture<Void> result = service.handleQosNotification("123", UserPlaneEvent.SESSION_TERMINATION);
     await().atMost(10, TimeUnit.SECONDS).until(result::isDone);
     assertThat(result).isCompleted();
@@ -150,7 +150,7 @@ class QodServiceImplTest {
     when(sessionRepo.findBySubscriptionId(anyString())).thenReturn(
         Optional.of(RedisQosSession.builder().id(UUID.fromString(SESSION_UUID)).build()));
     when(sessionRepo.findById(UUID.fromString(SESSION_UUID))).thenReturn(Optional.of(RedisQosSession.builder().build()));
-    when(modelMapper.map(any(QosSession.class))).thenReturn(createSessionInfoSample());
+    when(sessionModelMapper.map(any(QosSession.class))).thenReturn(createSessionInfoSample());
     String errorMessage = "I/O error on POST request for \"https://application-server.com/notifications/notifications\": "
         + "application-server.com; nested exception is java.net.UnknownHostException: application-server.com";
     doThrow(new ResourceAccessException(errorMessage)).when(notificationsCallbackApi).postNotification(any(Notification.class));
@@ -173,7 +173,7 @@ class QodServiceImplTest {
     when(sessionRepo.findBySubscriptionId(anyString())).thenReturn(
         Optional.of(redisQosSessionTestData));
     when(sessionRepo.findById(UUID.fromString(SESSION_UUID))).thenReturn(Optional.of(RedisQosSession.builder().build()));
-    when(modelMapper.map(any(QosSession.class))).thenReturn(createSessionInfoSample());
+    when(sessionModelMapper.map(any(QosSession.class))).thenReturn(createSessionInfoSample());
     String errorMessage = "I/O error on POST request for \"https://application-server.com/notifications/notifications\": "
         + "application-server.com; nested exception is java.net.UnknownHostException: application-server.com";
 

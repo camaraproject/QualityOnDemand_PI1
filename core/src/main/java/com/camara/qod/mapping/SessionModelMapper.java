@@ -30,7 +30,7 @@ import org.mapstruct.Mapper;
  * Maps the CreateSession model to the SessionsInfo model.
  */
 @Mapper(componentModel = "spring")
-public interface ModelMapper {
+public interface SessionModelMapper {
 
   SessionInfo map(QosSession qosSession);
 

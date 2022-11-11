@@ -87,6 +87,11 @@
     </dependency>
     <dependency>
       <groupId>io.springfox</groupId>
+      <artifactId>springfox-swagger-common</artifactId>
+      <version>${springfox-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.springfox</groupId>
       <artifactId>springfox-swagger2</artifactId>
       <version>${springfox-version}</version>
     </dependency>
@@ -134,7 +139,7 @@
               <goal>generate</goal>
             </goals>
             <configuration>
-              <inputSpec>${project.basedir}/src/main/resources/qod-api.yaml</inputSpec>
+              <inputSpec>${project.basedir}/src/main/resources/static/qod-api.yaml</inputSpec>
               <generatorName>java</generatorName>
               <library>resttemplate</library>
               <apiPackage>com.camara.qod.api.notifications</apiPackage>
@@ -155,7 +160,7 @@
               <goal>generate</goal>
             </goals>
             <configuration>
-              <inputSpec>${project.basedir}/src/main/resources/qod-api.yaml</inputSpec>
+              <inputSpec>${project.basedir}/src/main/resources/static/qod-api.yaml</inputSpec>
               <generatorName>spring</generatorName>
               <apiPackage>com.camara.qod.api</apiPackage>
               <modelPackage>com.camara.qod.api.model</modelPackage>
