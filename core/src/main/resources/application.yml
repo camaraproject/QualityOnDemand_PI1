@@ -70,3 +70,10 @@ spring:
   redis:
     host: localhost
     port: 6379
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+springdoc:
+  swagger-ui:
+    path: /swagger
+    url: /qod-api.yaml

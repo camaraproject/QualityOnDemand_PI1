@@ -37,7 +37,7 @@ import com.camara.qod.config.ScefConfig;
 import com.camara.qod.controller.ExceptionHandlerAdvice.ApplicationConstants;
 import com.camara.qod.controller.SessionApiException;
 import com.camara.qod.feign.AvailabilityServiceClient;
-import com.camara.qod.mapping.ModelMapper;
+import com.camara.qod.mapping.SessionModelMapper;
 import com.camara.qod.model.AvailabilityRequest;
 import com.camara.qod.model.QosSession;
 import com.camara.scef.api.ApiClient;
@@ -86,7 +86,7 @@ public class QodServiceImpl implements QodService {
    */
   private final ScefConfig scefConfig;
   private final QodConfig qodConfig;
-  private final ModelMapper modelMapper;
+  private final SessionModelMapper sessionModelMapper;
   private final StorageService storage;
   private final AsSessionWithQoSApiSubscriptionLevelPostOperationApi postApi;
   private final AsSessionWithQoSApiSubscriptionLevelDeleteOperationApi deleteApi;
@@ -332,7 +332,7 @@ public class QodServiceImpl implements QodService {
 
     QosSession qosSession = storage.saveSession(now, expiresAt, uuid, session, subscriptionId, bookkeeperId);
 
-    SessionInfo ret = modelMapper.map(qosSession);
+    SessionInfo ret = sessionModelMapper.map(qosSession);
 
     // Messages are only present in response but not in repository
     ret.setMessages(messages);
@@ -344,7 +344,7 @@ public class QodServiceImpl implements QodService {
    */
   @Override
   public SessionInfo getSession(@NotNull UUID sessionId) {
-    return storage.getSession(sessionId).map(modelMapper::map)
+    return storage.getSession(sessionId).map(sessionModelMapper::map)
         .orElseThrow(() -> new SessionApiException(HttpStatus.NOT_FOUND, "QoD session not found for session ID: " + sessionId));
   }
 
@@ -376,7 +376,7 @@ public class QodServiceImpl implements QodService {
                 + qosSession.getSubscriptionId());
       }
     }
-    return modelMapper.map(qosSession);
+    return sessionModelMapper.map(qosSession);
   }
 
   /**
