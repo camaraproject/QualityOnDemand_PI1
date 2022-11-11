@@ -9,7 +9,7 @@ senf:
 
 qod:
   availability:
-    enabled: true
+    enabled: false
     url: https://dev-availability.caas-t03.telekom.de
 
 # Logging
