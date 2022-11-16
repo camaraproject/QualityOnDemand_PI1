@@ -6,7 +6,7 @@
 
   <groupId>com.camara</groupId>
   <artifactId>qod</artifactId>
-  <version>0.1.0</version>
+  <version>0.8.0</version>
   <description>Service Enabling Function for Quality-of-Service</description>
   <organization>
     <name>Deutsche Telekom AG</name>
