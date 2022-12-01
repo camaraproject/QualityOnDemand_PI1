@@ -20,31 +20,24 @@
  * ---license-end
  */
 
-package com.camara.qod.controller;
+package com.camara.qod.exception;
 
+import lombok.Generated;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 import org.springframework.http.HttpStatus;
 
 /**
  * A SessionApiException is raised during runtime, if something went wrong (e.g. invalid request parameters, error from NEF, ...).
  */
+@Generated
+@Getter
+@ToString
 public class SessionApiException extends RuntimeException {
 
   private HttpStatus httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-  private String constant;
-
-  public String getConstant() {
-    return constant;
-  }
-
-  public HttpStatus getHttpStatus() {
-    return httpStatus;
-  }
-
-  /**
-   * Construct INTERNAL_SERVER_ERROR exception w/o detailed message.
-   */
-  public SessionApiException() {
-  }
+  private String errorCode;
 
   /**
    * Constructs a new runtime exception with the specified detail message. The cause is not initialized, and may subsequently be initialized
@@ -56,19 +49,19 @@ public class SessionApiException extends RuntimeException {
   public SessionApiException(HttpStatus httpStatus, String message) {
     super(message);
     this.httpStatus = httpStatus;
-    this.constant = httpStatus.name();
+    this.errorCode = httpStatus.name();
   }
 
   /**
-   * Constructs a new runtime exception with the specified detail message and an {@link ExceptionHandlerAdvice.ApplicationConstants}.
+   * Constructs a new runtime exception with the specified detail message and an {@link ErrorCode}.
    *
    * @param httpStatus the {@link HttpStatus}
    * @param message    the detail message. The detail message is saved for later retrieval by the {@link #getMessage()} method.
-   * @param constant   {@link ExceptionHandlerAdvice.ApplicationConstants}
+   * @param errorCode  {@link ErrorCode}
    */
-  public SessionApiException(HttpStatus httpStatus, String message, ExceptionHandlerAdvice.ApplicationConstants constant) {
+  public SessionApiException(HttpStatus httpStatus, String message, ErrorCode errorCode) {
     super(message);
     this.httpStatus = httpStatus;
-    this.constant = constant.name();
+    this.errorCode = errorCode.name();
   }
 }

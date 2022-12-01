@@ -32,6 +32,8 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.camara.qod.exception.ExceptionHandlerAdvice;
+import com.camara.qod.exception.SessionApiException;
 import com.camara.qod.service.QodService;
 import com.camara.scef.api.notifications.NotificationsApiController;
 import java.util.concurrent.CompletableFuture;

@@ -52,6 +52,7 @@ import com.camara.qod.api.model.QosProfile;
 import com.camara.qod.api.model.SessionInfo;
 import com.camara.qod.config.QodConfig;
 import com.camara.qod.config.ScefConfig;
+import com.camara.qod.exception.SessionApiException;
 import com.camara.scef.api.model.AsSessionWithQoSSubscription;
 import com.camara.scef.api.model.UserPlaneNotificationData;
 import com.fasterxml.jackson.core.JsonProcessingException;

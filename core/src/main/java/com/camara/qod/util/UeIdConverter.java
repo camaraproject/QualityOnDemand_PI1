@@ -25,7 +25,7 @@
 package com.camara.qod.util;
 
 import com.camara.qod.api.model.UeId;
-import com.camara.qod.controller.SessionApiException;
+import com.camara.qod.exception.SessionApiException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import javax.persistence.AttributeConverter;

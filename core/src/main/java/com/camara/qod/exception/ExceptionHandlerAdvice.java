@@ -20,13 +20,13 @@
  * ---license-end
  */
 
-package com.camara.qod.controller;
+package com.camara.qod.exception;
 
 import com.camara.qod.api.model.ErrorInfo;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.Generated;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -39,9 +39,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
  * This class handles occurred exceptions.
  */
 @ControllerAdvice
+@Slf4j
+@Generated
 public class ExceptionHandlerAdvice {
-
-  private static final Logger log = LoggerFactory.getLogger(ExceptionHandlerAdvice.class);
 
   /**
    * This function handles an occurred exception and puts the information into an HTTP response.
@@ -53,7 +53,7 @@ public class ExceptionHandlerAdvice {
   public ResponseEntity<ErrorInfo> handleException(SessionApiException e) {
     log.error("Session API exception raised: ", e);
     return ResponseEntity.status(e.getHttpStatus()).contentType(MediaType.APPLICATION_JSON)
-        .body(new ErrorInfo().code(e.getConstant()).message(e.getMessage()));
+        .body(new ErrorInfo().code(e.getErrorCode()).message(e.getMessage()));
   }
 
   /**
@@ -72,8 +72,8 @@ public class ExceptionHandlerAdvice {
       field = fe.getField();
     }
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON).body(new ErrorInfo().code(
-        e.toString().contains("rejected value [null]") ? ApplicationConstants.PARAMETER_MISSING.name()
-            : ApplicationConstants.VALIDATION_FAILED.name()).message("Validation failed for parameter '" + field + "'"));
+        e.toString().contains("rejected value [null]") ? ErrorCode.PARAMETER_MISSING.name()
+            : ErrorCode.VALIDATION_FAILED.name()).message("Validation failed for parameter '" + field + "'"));
   }
 
   /**
@@ -86,7 +86,7 @@ public class ExceptionHandlerAdvice {
   public ResponseEntity<ErrorInfo> handleException(ValueInstantiationException e) {
     log.error("ValueInstantiationException raised: ", e);
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON).body(
-        new ErrorInfo().code(ApplicationConstants.VALIDATION_FAILED.name())
+        new ErrorInfo().code(ErrorCode.VALIDATION_FAILED.name())
             .message("Schema validation failed at " + e.getPath().get(0).getFieldName()));
   }
 
@@ -100,12 +100,9 @@ public class ExceptionHandlerAdvice {
   public ResponseEntity<ErrorInfo> handleException(InvalidFormatException e) {
     log.error("InvalidFormatException raised: ", e);
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON).body(
-        new ErrorInfo().code(ApplicationConstants.INVALID_INPUT.name())
+        new ErrorInfo().code(ErrorCode.INVALID_INPUT.name())
             .message("Required: " + e.getTargetType().getSimpleName() + ", provided: '" + e.getValue().toString() + "'"));
   }
 
-  public enum ApplicationConstants {
-    INVALID_INPUT, VALIDATION_FAILED, PARAMETER_MISSING, NOT_ALLOWED
-  }
 
 }

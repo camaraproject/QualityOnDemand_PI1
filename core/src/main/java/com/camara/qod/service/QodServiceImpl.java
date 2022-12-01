@@ -34,8 +34,8 @@ import com.camara.qod.api.notifications.SessionNotificationsCallbackApi;
 import com.camara.qod.commons.Util;
 import com.camara.qod.config.QodConfig;
 import com.camara.qod.config.ScefConfig;
-import com.camara.qod.controller.ExceptionHandlerAdvice.ApplicationConstants;
-import com.camara.qod.controller.SessionApiException;
+import com.camara.qod.exception.ErrorCode;
+import com.camara.qod.exception.SessionApiException;
 import com.camara.qod.feign.AvailabilityServiceClient;
 import com.camara.qod.mapping.SessionModelMapper;
 import com.camara.qod.model.AvailabilityRequest;
@@ -60,8 +60,7 @@ import javax.annotation.PostConstruct;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -72,9 +71,8 @@ import org.springframework.web.client.HttpStatusCodeException;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class QodServiceImpl implements QodService {
-
-  private static final Logger log = LoggerFactory.getLogger(QodServiceImpl.class);
 
   private static final int FLOW_ID_UNKNOWN = -1;
   private static final String FLOW_DESCRIPTION_TEMPLATE_IN = "permit from %s to %s";
@@ -179,13 +177,13 @@ public class QodServiceImpl implements QodService {
       if (portsSpecRanges.getFrom() > portsSpecRanges.getTo()) {
         throw new SessionApiException(HttpStatus.BAD_REQUEST,
             "Ports specification not valid, given range: from " + portsSpecRanges.getFrom() + ", to " + portsSpecRanges.getTo(),
-            ApplicationConstants.VALIDATION_FAILED);
+            ErrorCode.VALIDATION_FAILED);
       }
     }
     if (ports.getPorts() != null) {
       if (ports.getPorts().stream().max(Integer::compareTo).get() > 65535 || ports.getPorts().stream().min(Integer::compareTo).get() < 0) {
         throw new SessionApiException(HttpStatus.BAD_REQUEST, "Ports ranges are not valid (0-65535)",
-            ApplicationConstants.VALIDATION_FAILED);
+            ErrorCode.VALIDATION_FAILED);
       }
     }
   }
@@ -252,17 +250,17 @@ public class QodServiceImpl implements QodService {
       throw new SessionApiException(HttpStatus.BAD_REQUEST,
           "A network segment for UeIdIpv4Addr is not allowed in the current configuration: " + session.getUeId().getIpv4addr()
               + " is not allowed, but " + session.getUeId().getIpv4addr().substring(0, session.getUeId().getIpv4addr().indexOf("/"))
-              + " is allowed.", ApplicationConstants.NOT_ALLOWED);
+              + " is allowed.", ErrorCode.NOT_ALLOWED);
     }
 
     // Validate if ipv4 address is given
     if (session.getUeId().getIpv4addr() == null) {
       throw new SessionApiException(HttpStatus.BAD_REQUEST, "Validation failed for parameter 'ueId.ipv4addr'",
-          ApplicationConstants.PARAMETER_MISSING);
+          ErrorCode.PARAMETER_MISSING);
     }
     if (session.getAsId().getIpv4addr() == null) {
       throw new SessionApiException(HttpStatus.BAD_REQUEST, "Validation failed for parameter 'asId.ipv4addr'",
-          ApplicationConstants.PARAMETER_MISSING);
+          ErrorCode.PARAMETER_MISSING);
     }
 
     // Check if already exists
@@ -468,7 +466,7 @@ public class QodServiceImpl implements QodService {
     };
 
     if (flowId == FLOW_ID_UNKNOWN) {
-      throw new SessionApiException(HttpStatus.BAD_REQUEST, "QoS profile unknown or disabled", ApplicationConstants.VALIDATION_FAILED);
+      throw new SessionApiException(HttpStatus.BAD_REQUEST, "QoS profile unknown or disabled", ErrorCode.VALIDATION_FAILED);
     }
     return flowId;
   }

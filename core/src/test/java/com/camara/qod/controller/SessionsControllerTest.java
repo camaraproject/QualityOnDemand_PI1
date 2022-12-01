@@ -34,6 +34,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.camara.qod.api.SessionsApiController;
+import com.camara.qod.exception.ExceptionHandlerAdvice;
+import com.camara.qod.exception.SessionApiException;
 import com.camara.qod.service.QodService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

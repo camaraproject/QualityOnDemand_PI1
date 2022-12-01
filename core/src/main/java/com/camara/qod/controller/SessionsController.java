@@ -25,7 +25,8 @@ package com.camara.qod.controller;
 import com.camara.qod.api.SessionsApiDelegate;
 import com.camara.qod.api.model.CreateSession;
 import com.camara.qod.api.model.SessionInfo;
-import com.camara.qod.controller.ExceptionHandlerAdvice.ApplicationConstants;
+import com.camara.qod.exception.ErrorCode;
+import com.camara.qod.exception.SessionApiException;
 import com.camara.qod.service.QodService;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressString;
@@ -107,7 +108,7 @@ public class SessionsController implements SessionsApiDelegate {
     if (current != rewritten) {
       throw new SessionApiException(
           HttpStatus.BAD_REQUEST, "Network specification not valid " + network,
-          ApplicationConstants.VALIDATION_FAILED);
+          ErrorCode.VALIDATION_FAILED);
     }
   }
 }

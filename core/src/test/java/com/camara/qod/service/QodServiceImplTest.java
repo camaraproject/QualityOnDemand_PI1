@@ -44,8 +44,8 @@ import com.camara.qod.api.notifications.SessionNotificationsCallbackApi;
 import com.camara.qod.config.QodConfig;
 import com.camara.qod.config.RedisConfig;
 import com.camara.qod.config.ScefConfig;
-import com.camara.qod.controller.SessionApiException;
 import com.camara.qod.entity.RedisQosSession;
+import com.camara.qod.exception.SessionApiException;
 import com.camara.qod.feign.AvailabilityServiceClient;
 import com.camara.qod.mapping.SessionModelMapper;
 import com.camara.qod.model.QosSession;
@@ -198,7 +198,7 @@ class QodServiceImplTest {
         .failsWithin(Duration.ZERO)
         .withThrowableOfType(ExecutionException.class)
         .withCauseInstanceOf(SessionApiException.class)
-        .withMessageContaining("QoD session not found for session ID: 000ab9f5-26e8-48b9-a56e-52ecdeaa9172");
+        .havingCause().withMessage("QoD session not found for session ID: 000ab9f5-26e8-48b9-a56e-52ecdeaa9172");
   }
 
   @Test
@@ -210,8 +210,8 @@ class QodServiceImplTest {
         () -> service.createSession(session));
     Assertions.assertEquals(HttpStatus.BAD_REQUEST, thrownException.getHttpStatus());
     Assertions.assertEquals(
-        "A network segment for UeIdIpv4Addr is not allowed in the current configuration: 72.24.11.4/17 is not allowed, but 72.24.11.4 is "
-            + "allowed.",
+        "A network segment for UeIdIpv4Addr is not allowed in the current configuration: "
+            + "72.24.11.4/17 is not allowed, but 72.24.11.4 is allowed.",
         thrownException.getMessage()
     );
   }
