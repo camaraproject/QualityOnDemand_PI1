@@ -38,11 +38,11 @@ For information about how to configure the QoD API, please refer to the next sec
 Start the qod-api service from terminal or from an IDE or with docker
 
 * from
-  terminal:```java --add-opens=java.base/java.net=ALL-UNNAMED -Dfile.encoding=UTF-8 -jar core\target\senf-core-<current version>.jar -Dspring.profiles.active=local```
+  terminal:```java --add-opens=java.base/java.net=ALL-UNNAMED -Dfile.encoding=UTF-8 -jar core\target\senf-core-<current version>.jar --spring.profiles.active=local```
 * from an IDE: Application can also be started directly from an IDE like IntelliJ, Eclipse, etc. by passing VM
   options in the "Run Configuration":
     * --add-opens=java.base/java.net=ALL-UNNAMED
-    * -Dspring.profiles.active=local
+    * --spring.profiles.active=local
 * with docker:
     * ```docker build -t qod-api . ```
     * ```docker run -dp 9091:9091 -p 9092:9092 qod-api```
