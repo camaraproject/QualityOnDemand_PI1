@@ -77,3 +77,6 @@ springdoc:
   swagger-ui:
     path: /swagger
     url: /qod-api.yaml
+
+enhanced-token-validation:
+  enabled: false

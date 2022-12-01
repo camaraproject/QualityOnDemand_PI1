@@ -37,6 +37,7 @@ import com.camara.qod.api.SessionsApiController;
 import com.camara.qod.service.QodService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
@@ -47,7 +48,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 
-@WebMvcTest(SessionsApiController.class)
+@WebMvcTest(controllers = SessionsApiController.class, excludeAutoConfiguration = {SecurityAutoConfiguration.class})
 @Import(value = {
     SessionsController.class,
     ExceptionHandlerAdvice.class
