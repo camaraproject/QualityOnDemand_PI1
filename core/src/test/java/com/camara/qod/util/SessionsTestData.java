@@ -46,6 +46,7 @@ public class SessionsTestData extends TestData {
   public static final String NOTIFICATION_URI = "/3gpp-as-session-with-qos/v1/notifications";
   public static final int DURATION_DEFAULT = 2;
   public static final String SESSION_UUID = "000ab9f5-26e8-48b9-a56e-52ecdeaa9172";
+  public static final String AVAILABILITY_SERVICE_URI = "/api/v1/sessions";
 
   public static CreateSession createTestSession(QosProfile qosProfile) {
     return createTestSession(qosProfile, new AsId().ipv4addr("200.24.24.2"));

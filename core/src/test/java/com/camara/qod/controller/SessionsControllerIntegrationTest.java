@@ -22,6 +22,7 @@
 
 package com.camara.qod.controller;
 
+import static com.camara.qod.util.SessionsTestData.AVAILABILITY_SERVICE_URI;
 import static com.camara.qod.util.SessionsTestData.createTestSession;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.created;
@@ -380,11 +381,11 @@ class SessionsControllerIntegrationTest {
     stubForAvailabilityServiceDeleteRequest();
     ResponseEntity<SessionInfo> response = api.createSession(createTestSession(QosProfile.E, new AsId().ipv4addr("10.1.0.0/24")));
     if (availabilityEnabled) {
-      verify(postRequestedFor(urlPathEqualTo("/api/v1/session/check")));
-      verify(postRequestedFor(urlPathEqualTo("/api/v1/session")));
+      verify(postRequestedFor(urlPathEqualTo(AVAILABILITY_SERVICE_URI + "/check")));
+      verify(postRequestedFor(urlPathEqualTo(AVAILABILITY_SERVICE_URI)));
     } else {
-      verify(0, postRequestedFor(urlPathEqualTo("/api/v1/session/check")));
-      verify(0, postRequestedFor(urlPathEqualTo("/api/v1/session")));
+      verify(0, postRequestedFor(urlPathEqualTo(AVAILABILITY_SERVICE_URI + "/check")));
+      verify(0, postRequestedFor(urlPathEqualTo(AVAILABILITY_SERVICE_URI)));
     }
     assertNotNull(response);
     assertEquals(HttpStatus.CREATED, response.getStatusCode());
@@ -396,11 +397,11 @@ class SessionsControllerIntegrationTest {
   private UUID createSession(CreateSession createSession) {
     ResponseEntity<SessionInfo> response = api.createSession(createSession);
     if (availabilityEnabled) {
-      verify(postRequestedFor(urlPathEqualTo("/api/v1/session/check")));
-      verify(postRequestedFor(urlPathEqualTo("/api/v1/session")));
+      verify(postRequestedFor(urlPathEqualTo(AVAILABILITY_SERVICE_URI + "/check")));
+      verify(postRequestedFor(urlPathEqualTo(AVAILABILITY_SERVICE_URI)));
     } else {
-      verify(0, postRequestedFor(urlPathEqualTo("/api/v1/session/check")));
-      verify(0, postRequestedFor(urlPathEqualTo("/api/v1/session")));
+      verify(0, postRequestedFor(urlPathEqualTo(AVAILABILITY_SERVICE_URI + "/check")));
+      verify(0, postRequestedFor(urlPathEqualTo(AVAILABILITY_SERVICE_URI)));
     }
     assertNotNull(response);
     assertEquals(HttpStatus.CREATED, response.getStatusCode());
@@ -418,9 +419,9 @@ class SessionsControllerIntegrationTest {
   private void deleteSession(UUID sessionId) {
     ResponseEntity<Void> response = api.deleteSession(sessionId);
     if (availabilityEnabled) {
-      verify(deleteRequestedFor(urlPathMatching("/api/v1/session/([a-zA-Z0-9/-]*)")));
+      verify(deleteRequestedFor(urlPathMatching(AVAILABILITY_SERVICE_URI + "/([a-zA-Z0-9/-]*)")));
     } else {
-      verify(0, deleteRequestedFor(urlPathMatching("/api/v1/session/([a-zA-Z0-9/-]*)")));
+      verify(0, deleteRequestedFor(urlPathMatching(AVAILABILITY_SERVICE_URI + "/([a-zA-Z0-9/-]*)")));
     }
     assertNotNull(response);
     assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
@@ -476,10 +477,10 @@ class SessionsControllerIntegrationTest {
 
   private void stubForAvailabilityServiceCheckRequest(Boolean isSuccessful) throws JsonProcessingException {
     if (isSuccessful) {
-      stubFor(post("/api/v1/session/check").willReturn(
+      stubFor(post(AVAILABILITY_SERVICE_URI + "/check").willReturn(
           created().withHeader("Content-Type", "application/json").withStatus(204)));
     } else {
-      stubFor(post("/api/v1/session/check").willReturn(
+      stubFor(post(AVAILABILITY_SERVICE_URI + "/check").willReturn(
           created().withHeader("Content-Type", "application/json").withStatus(400)));
     }
   }
@@ -489,16 +490,17 @@ class SessionsControllerIntegrationTest {
   }
 
   private void stubForAvailabilityServiceCreateRequest() throws JsonProcessingException {
-    stubFor(post("/api/v1/session").willReturn(
+    stubFor(post(AVAILABILITY_SERVICE_URI).willReturn(
         created().withHeader("Content-Type", "application/json").withBody("3fa85f64-5717-4562-b3fc-2c963f66afa6")));
   }
 
   private void stubForAvailabilityServiceDeleteRequest() {
-    stubFor(delete(urlPathMatching("/api/v1/session/([a-zA-Z0-9/-]*)")).willReturn(noContent()));
+    stubFor(delete(urlPathMatching(AVAILABILITY_SERVICE_URI + "/([a-zA-Z0-9/-]*)")).willReturn(noContent()));
   }
 
   private void stubForAvailabilityServiceDeleteErrorRequest() {
-    stubFor(delete(urlPathMatching("/api/v1/session/([a-zA-Z0-9/-]*)")).willReturn(aResponse().withFault(Fault.EMPTY_RESPONSE)));
+    stubFor(
+        delete(urlPathMatching(AVAILABILITY_SERVICE_URI + "/([a-zA-Z0-9/-]*)")).willReturn(aResponse().withFault(Fault.EMPTY_RESPONSE)));
   }
 
 }

@@ -39,16 +39,16 @@ import org.springframework.web.bind.annotation.RequestBody;
 public interface AvailabilityServiceClient {
 
   @PostMapping(
-      value = "/api/v1/session",
+      value = "/api/v1/sessions",
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.TEXT_PLAIN_VALUE)
   ResponseEntity<String> createSession(@Valid @RequestBody AvailabilityRequest availabilityRequest);
 
   @PostMapping(
-      value = "/api/v1/session/check",
+      value = "/api/v1/sessions/check",
       consumes = MediaType.APPLICATION_JSON_VALUE)
   ResponseEntity<Void> checkSession(@Valid @RequestBody AvailabilityRequest availabilityRequest);
 
-  @DeleteMapping(value = "/api/v1/session/{id}")
+  @DeleteMapping(value = "/api/v1/sessions/{id}")
   ResponseEntity<Void> deleteSession(@PathVariable("id") UUID id);
 }
