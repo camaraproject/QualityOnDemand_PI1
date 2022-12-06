@@ -26,18 +26,22 @@ import lombok.Generated;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.EnableSchedulerLock;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.boot.web.servlet.ServletComponentScan;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @Slf4j
-@SpringBootApplication
+@SpringBootApplication(exclude = {SecurityAutoConfiguration.class, ManagementWebSecurityAutoConfiguration.class})
 @ComponentScan({"com.camara.qod", "com.camara.scef"})
 @EnableAsync
 @EnableFeignClients
 @EnableScheduling
+@ServletComponentScan
 @EnableSchedulerLock(defaultLockAtMostFor = "1m")
 @Generated
 public class QodApp {
