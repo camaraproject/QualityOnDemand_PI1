@@ -392,14 +392,6 @@ public class QodServiceImpl implements QodService {
       QosSession session = sessionOptional.get();
       SessionInfo sessionInfo = deleteSession(session.getId());
       notifySession(sessionInfo, SessionEvent.SESSION_TERMINATED);
-
-      if (session.getNotificationUri() != null && session.getNotificationAuthToken() != null) {
-        com.camara.qod.api.notifications.ApiClient apiNotificationClient = new com.camara.qod.api.notifications.ApiClient().setBasePath(
-            session.getNotificationUri().toString());
-        apiNotificationClient.setApiKey(session.getNotificationAuthToken());
-        notificationsCallbackApi.setApiClient(apiNotificationClient);
-        notificationsCallbackApi.postNotification(new Notification().sessionId(session.getId()).event(SessionEvent.SESSION_TERMINATED));
-      }
     }
     return CompletableFuture.completedFuture(null);
   }
