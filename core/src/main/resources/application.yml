@@ -55,16 +55,13 @@ logging:
 management:
   server:
     port: 9092
-  health:
-    probes:
-      enabled: true
+  endpoint:
+    health:
+      probes:
+        enabled: true
       show-details: always
-  info:
-    enabled: true
-
-databases:
-  redis:
-    enabled: true
+    info:
+      enabled: true
 
 spring:
   redis:

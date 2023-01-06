@@ -24,11 +24,6 @@ spring:
       schema-locations: classpath:sql/schema.sql
   h2:
     console.enabled: true
-databases:
-  redis:
-    enabled: false
-  h2:
-    enabled: true
 management:
   health:
     redis:
