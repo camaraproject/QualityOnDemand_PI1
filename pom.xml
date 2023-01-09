@@ -22,7 +22,7 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <license.licenseName>apache_v2</license.licenseName>
     <license.projectName>CAMARA Project</license.projectName>
-    <license.inceptionYear>2022</license.inceptionYear>
+    <license.inceptionYear>2023</license.inceptionYear>
     <!--dependencies-->
     <plugin.jacoco.version>0.8.8</plugin.jacoco.version>
     <spotbugs.version>4.7.1.1</spotbugs.version>
