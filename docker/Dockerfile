@@ -1,0 +1,5 @@
+FROM gcr.io/distroless/java17 as build
+COPY core/target/*.jar app.jar
+EXPOSE 9091
+USER 65534:65534
+ENTRYPOINT ["java","-jar","-Djava.security.egd=file:/dev/./urandom", "-Dlogging.file.path=/log", "-Dspring.profiles.active=prod", "app.jar"]
