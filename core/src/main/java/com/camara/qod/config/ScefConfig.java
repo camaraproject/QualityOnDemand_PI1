@@ -68,6 +68,15 @@ public class ScefConfig {
   @Value("${scef.auth.oauth.token}")
   private String token;
 
+  @Value("${scef.auth.oauth2.token-endpoint}")
+  private String tokenEndpoint;
+
+  @Value("${scef.auth.oauth2.client-id}")
+  private String clientId;
+
+  @Value("${scef.auth.oauth2.client-secret}")
+  private String clientSecret;
+
   @Value("${scef.debug}")
   private Boolean scefDebug;
 

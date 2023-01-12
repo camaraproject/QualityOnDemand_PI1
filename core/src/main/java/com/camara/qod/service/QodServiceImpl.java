@@ -79,6 +79,9 @@ public class QodServiceImpl implements QodService {
   private static final String FLOW_DESCRIPTION_TEMPLATE_OUT = "permit from %s to %s";
   private static final String[] PRIVATE_NETWORKS = {"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"};
 
+
+  private static final String OAUTH2_CLIENT_CREDENTIALS_FLOW_AUTH = "oauth2-client-credentials-flow";
+
   /**
    * SCEF QoS API, see http://www.3gpp.org/ftp/Specs/archive/29_series/29.122/
    */
@@ -91,6 +94,8 @@ public class QodServiceImpl implements QodService {
   private final SessionNotificationsCallbackApi notificationsCallbackApi;
   private final AvailabilityServiceClient avsClient;
   private final ApiClient apiClient;
+
+  private final ScefAccessTokenExchanger scefAccessTokenExchanger;
 
   /**
    * Convert PortsSpec to NEF format.
@@ -320,6 +325,9 @@ public class QodServiceImpl implements QodService {
     FlowInfo flowInfo = createFlowInfo(ueAddr, asAddr, flowId);
     AsSessionWithQoSSubscription qosSubscription = createQosSubscription(session.getUeId().getIpv4addr(), flowInfo, qosReference,
         scefConfig.getSupportedFeatures());
+    if (OAUTH2_CLIENT_CREDENTIALS_FLOW_AUTH.equals(scefConfig.getAuthMethod())) {
+      postApi.getApiClient().setAccessToken(scefAccessTokenExchanger.exchange());
+    }
     AsSessionWithQoSSubscription response = postApi.scsAsIdSubscriptionsPost(scefConfig.getScsAsId(), qosSubscription);
     String subscriptionId = Util.subscriptionId(response.getSelf());
     if (subscriptionId == null) {
@@ -367,6 +375,9 @@ public class QodServiceImpl implements QodService {
 
     if (qosSession.getSubscriptionId() != null) {
       try {
+        if (OAUTH2_CLIENT_CREDENTIALS_FLOW_AUTH.equals(scefConfig.getAuthMethod())) {
+          postApi.getApiClient().setAccessToken(scefAccessTokenExchanger.exchange());
+        }
         deleteApi.scsAsIdSubscriptionsSubscriptionIdDeleteWithHttpInfo(scefConfig.getScsAsId(), qosSession.getSubscriptionId());
       } catch (HttpStatusCodeException e) {
         throw new SessionApiException(HttpStatus.INTERNAL_SERVER_ERROR,

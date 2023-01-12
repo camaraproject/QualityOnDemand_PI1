@@ -26,6 +26,10 @@ scef:
     password: secret
     oauth:
       token: <auth token>
+    oauth2:
+      client-id: <client-id>
+      client-secret: <client-secret>
+      token-endpoint: <token-endpoint>
   debug: false
 
 # QoD specific configuration
