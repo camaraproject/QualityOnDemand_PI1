@@ -75,8 +75,8 @@ import org.springframework.web.client.HttpStatusCodeException;
 public class QodServiceImpl implements QodService {
 
   private static final int FLOW_ID_UNKNOWN = -1;
-  private static final String FLOW_DESCRIPTION_TEMPLATE_IN = "permit from %s to %s";
-  private static final String FLOW_DESCRIPTION_TEMPLATE_OUT = "permit from %s to %s";
+  private static final String FLOW_DESCRIPTION_TEMPLATE_IN = "permit in ip from %s to %s";
+  private static final String FLOW_DESCRIPTION_TEMPLATE_OUT = "permit out ip from %s to %s";
   private static final String[] PRIVATE_NETWORKS = {"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"};
 
 
