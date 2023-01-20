@@ -1,12 +1,12 @@
-package com.camara.qod.service;
-
 /*-
  * ---license-start
  * CAMARA Project
  * ---
- * Copyright (C) 2022 Contributors | Deutsche Telekom AG to CAMARA a Series of LF Projects, LLC
+ * Copyright (C) 2022 - 2023 Contributors | Deutsche Telekom AG to CAMARA a Series of LF
+ *             Projects, LLC
  * The contributor of this file confirms his sign-off for the
- * Developer Certificate of Origin (http://developercertificate.org).
+ * Developer
+ *             Certificate of Origin (http://developercertificate.org).
  * ---
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,9 @@ package com.camara.qod.service;
  * limitations under the License.
  * ---license-end
  */
+
+package com.camara.qod.service;
+
 
 import com.camara.qod.api.model.CreateSession;
 import com.camara.qod.model.QosSession;

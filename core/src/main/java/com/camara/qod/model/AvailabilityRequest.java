@@ -1,8 +1,8 @@
 /*-
  * ---license-start
- * QoD Project
+ * CAMARA Project
  * ---
- * Copyright (C) 2022 Contributors | T-Systems International GmbH to CAMARA a Series of LF
+ * Copyright (C) 2022 - 2023 Contributors | Deutsche Telekom AG to CAMARA a Series of LF
  *             Projects, LLC
  * The contributor of this file confirms his sign-off for the
  * Developer
