@@ -1,0 +1,83 @@
+# Server
+server:
+  port: 9091
+
+# Client
+#senf:
+#  rest:
+#    baseurl: https://3gppserver.unknown/v1
+
+# T8 reference point, SCEF EP, see http://www.3gpp.org/ftp/Specs/archive/29_series/29.122/
+scef:
+  server:
+    apiroot: https://example.com
+    scsasid: scs
+    flowid:
+      qos-e: 3
+      qos-s: 4
+      qos-m: 5
+      qos-l: 6
+    supportedFeatures: 003C
+  notifications:
+    url: http://127.0.0.1/notifications
+  auth:
+    type: basic
+    username: foo
+    password: secret
+    oauth:
+      token: <auth token>
+    oauth2:
+      client-id: <client-id>
+      client-secret: <client-secret>
+      token-endpoint: <token-endpoint>
+  debug: false
+
+# QoD specific configuration
+qod:
+  qos:
+    references:
+      qos-e: qod_1
+      qos-s: qod_2
+      qos-m: qod_3
+      qos-l: qod_4
+  expiration: # settings for session expiration handling (in seconds)
+    time-before-handling: 20
+    trigger-interval: 10
+    lock-time: 2
+  mask-sensible-data: true # if set to true, sensible data is masked in response body
+  allow-multiple-ueaddr: true # if set to true, network segments are allowed for ueAddr
+  availability:
+    enabled: true
+    url: http://localhost:8091
+# Logging
+logging:
+  file:
+    path: /tmp/qod-api-service-logs
+  config: classpath:logback-spring.xml
+
+# Health
+management:
+  server:
+    port: 9092
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+    info:
+      enabled: true
+
+spring:
+  redis:
+    host: localhost
+    port: 6379
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+springdoc:
+  swagger-ui:
+    path: /swagger
+    url: /qod-api.yaml
+
+enhanced-token-validation:
+  enabled: false
