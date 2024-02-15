@@ -5,37 +5,13 @@
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>senf-api</artifactId>
-  <version>0.8.0</version>
+  <version>v0.10.0-rc</version>
 
   <parent>
     <groupId>com.camara</groupId>
     <artifactId>qod</artifactId>
-    <version>0.8.0</version>
+    <version>v0.10.0-rc</version>
   </parent>
-
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-dependencies</artifactId>
-        <type>pom</type>
-        <version>${spring-boot.version}</version>
-        <scope>import</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
-
-  <properties>
-    <swagger-annotations-version>2.2.8</swagger-annotations-version>
-    <jodatime-version>2.11.0</jodatime-version>
-    <springfox-version>3.0.0</springfox-version>
-    <threetenbp-version>1.6.1</threetenbp-version>
-    <datatype-threetenbp-version>2.9.10</datatype-threetenbp-version>
-    <spring-boot-starter-web-version>3.0.2</spring-boot-starter-web-version>
-    <migbase64-version>2.2</migbase64-version>
-    <jackson-databind-nullable>0.2.3</jackson-databind-nullable>
-    <findbugs-jsr305-version>3.0.2</findbugs-jsr305-version>
-  </properties>
 
   <dependencies>
     <dependency>
@@ -77,7 +53,6 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>
-      <version>${spring-boot-starter-web-version}</version>
     </dependency>
     <dependency>
       <groupId>io.springfox</groupId>
@@ -113,12 +88,6 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-validation</artifactId>
     </dependency>
-    <dependency>
-      <groupId>com.google.code.findbugs</groupId>
-      <artifactId>jsr305</artifactId>
-      <version>${findbugs-jsr305-version}</version>
-    </dependency>
-
   </dependencies>
 
   <build>
@@ -126,7 +95,7 @@
       <plugin>
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-maven-plugin</artifactId>
-        <version>6.3.0</version>
+        <version>${code-generator.version}</version>
         <executions>
           <execution>
             <id>client</id>
@@ -162,15 +131,22 @@
               <modelPackage>com.camara.qod.api.model</modelPackage>
               <supportingFilesToGenerate>ApiUtil.java</supportingFilesToGenerate>
               <configOptions>
+                <additionalModelTypeAnnotations>
+                  @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+                </additionalModelTypeAnnotations>
                 <useSpringBoot3>true</useSpringBoot3>
                 <delegatePattern>true</delegatePattern>
                 <useJakartaEe>true</useJakartaEe>
+                <openApiNullable>false</openApiNullable>
               </configOptions>
               <generateApiTests>false</generateApiTests>
               <generateModelTests>false</generateModelTests>
               <globalProperties>
-                <apis>sessions,check-qos-availability</apis>
+                <apis>sessions,qos-profiles</apis>
               </globalProperties>
+              <openapiNormalizer>
+                SIMPLIFY_ANYOF_STRING_AND_ENUM_STRING=true
+              </openapiNormalizer>
             </configuration>
           </execution>
         </executions>
@@ -178,7 +154,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.0.0-M7</version>
+        <version>${maven-plugin.version}</version>
         <configuration>
           <testFailureIgnore>true</testFailureIgnore>
           <skipTests>true</skipTests>

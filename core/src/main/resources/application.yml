@@ -3,7 +3,7 @@ server:
   port: 9091
 
 # T8 reference point, SCEF EP, see http://www.3gpp.org/ftp/Specs/archive/29_series/29.122/
-scef:
+network:
   server:
     apiroot: https://example.com
     scsasid: scs
@@ -27,8 +27,23 @@ scef:
       token-endpoint: <token-endpoint>
   debug: false
 
+app:
+  keycloak:
+    enabled: false
+    url: http://localhost:8000
+    realm: local
+    client:
+      id: local
+      secret: local
+
 # QoD specific configuration
 qod:
+  eventhub:
+    url: http://localhost:8000
+    horizon: false
+  cloud-event:
+    source:
+      url: http://localhost/sessions
   qos:
     references:
       qos-e: qod_1
@@ -40,12 +55,11 @@ qod:
     trigger-interval: 10
     lock-time: 2
   mask-sensible-data: true # if set to true, sensible data is masked in response body
-  allow-multiple-ueaddr: true # if set to true, network segments are allowed for ueAddr
+  allow-multiple-deviceaddr: true # if set to true, network segments are allowed for ueAddr
   availability:
     enabled: false
     url: http://localhost:8091
-  duration:
-    default: 600
+  service-id: qod
 # Logging
 logging:
   file:
@@ -65,13 +79,30 @@ management:
       enabled: true
 
 spring:
-  mvc:
-    pathmatch:
-      matching-strategy: ant_path_matcher
   data:
     redis:
       host: localhost
       port: 6379
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  security:
+    oauth2:
+      client:
+        registration:
+          iris:
+            client-id: ${IRIS_CLIENT_ID:local}
+            client-secret: ${IRIS_CLIENT_SECRET:local}
+            authorization-grant-type: client_credentials
+        provider:
+          iris:
+            token-uri: ${IRIS_TOKEN_URL:http://localhost:8000/auth/realms/local/protocol/openid-connect/token}
+  kafka:
+    producer:
+      bootstrap-servers: localhost:29092
+kafka:
+  topic:
+    webhook: callback
 springdoc:
   swagger-ui:
     path: /swagger

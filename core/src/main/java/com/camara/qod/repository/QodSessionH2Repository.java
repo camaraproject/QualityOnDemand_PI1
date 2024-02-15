@@ -2,11 +2,10 @@
  * ---license-start
  * CAMARA Project
  * ---
- * Copyright (C) 2022 - 2023 Contributors | Deutsche Telekom AG to CAMARA a Series of LF
- *             Projects, LLC
- * The contributor of this file confirms his sign-off for the
- * Developer
- *             Certificate of Origin (http://developercertificate.org).
+ * Copyright (C) 2022 - 2024 Contributors | Deutsche Telekom AG to CAMARA a Series of LF Projects, LLC
+ *
+ * The contributor of this file confirms his sign-off for the Developer Certificate of Origin
+ *             (https://developercertificate.org).
  * ---
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,10 +24,10 @@
 package com.camara.qod.repository;
 
 import com.camara.qod.entity.H2QosSession;
+import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import javax.validation.constraints.NotBlank;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -41,12 +40,12 @@ import org.springframework.stereotype.Repository;
 public interface QodSessionH2Repository extends JpaRepository<H2QosSession, UUID> {
 
   /**
-   * Get QoS session by UE address.
+   * Get QoS session by Device IPv4 address.
    *
    * @param ipAddr user equipment ip address to search for
    * @return QoS session or null if session not found
    */
-  List<H2QosSession> findByUeIpv4addr(String ipAddr);
+  List<H2QosSession> findByDeviceIpv4addr(String ipAddr);
 
   /**
    * Get QoS session by SENF/NEF subscription.

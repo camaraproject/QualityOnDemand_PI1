@@ -2,11 +2,10 @@
  * ---license-start
  * CAMARA Project
  * ---
- * Copyright (C) 2022 - 2023 Contributors | Deutsche Telekom AG to CAMARA a Series of LF
- *             Projects, LLC
- * The contributor of this file confirms his sign-off for the
- * Developer
- *             Certificate of Origin (http://developercertificate.org).
+ * Copyright (C) 2022 - 2024 Contributors | Deutsche Telekom AG to CAMARA a Series of LF Projects, LLC
+ *
+ * The contributor of this file confirms his sign-off for the Developer Certificate of Origin
+ *             (https://developercertificate.org).
  * ---
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,15 +29,15 @@ import lombok.ToString;
 import org.springframework.http.HttpStatus;
 
 /**
- * A SessionApiException is raised during runtime, if something went wrong (e.g. invalid request parameters, error from NEF, ...).
+ * A QodApiException is raised during runtime, if something went wrong (e.g. invalid request parameters, error from NEF, ...).
  */
 @Generated
 @Getter
 @ToString
-public class SessionApiException extends RuntimeException {
+public class QodApiException extends RuntimeException {
 
-  private HttpStatus httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-  private String errorCode;
+  private final HttpStatus httpStatus;
+  private final String errorCode;
 
   /**
    * Constructs a new runtime exception with the specified detail message. The cause is not initialized, and may subsequently be initialized
@@ -47,7 +46,7 @@ public class SessionApiException extends RuntimeException {
    * @param httpStatus the {@link HttpStatus}
    * @param message    the detail message. The detail message is saved for later retrieval by the {@link #getMessage()} method.
    */
-  public SessionApiException(HttpStatus httpStatus, String message) {
+  public QodApiException(HttpStatus httpStatus, String message) {
     super(message);
     this.httpStatus = httpStatus;
     this.errorCode = httpStatus.name();
@@ -60,7 +59,7 @@ public class SessionApiException extends RuntimeException {
    * @param message    the detail message. The detail message is saved for later retrieval by the {@link #getMessage()} method.
    * @param errorCode  {@link ErrorCode}
    */
-  public SessionApiException(HttpStatus httpStatus, String message, ErrorCode errorCode) {
+  public QodApiException(HttpStatus httpStatus, String message, ErrorCode errorCode) {
     super(message);
     this.httpStatus = httpStatus;
     this.errorCode = errorCode.name();

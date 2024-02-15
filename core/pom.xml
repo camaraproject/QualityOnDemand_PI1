@@ -5,52 +5,32 @@
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>senf-core</artifactId>
-  <version>0.8.0</version>
+  <version>v0.10.0-rc</version>
   <packaging>jar</packaging>
   <parent>
     <groupId>com.camara</groupId>
     <artifactId>qod</artifactId>
-    <version>0.8.0</version>
+    <version>v0.10.0-rc</version>
   </parent>
-
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-dependencies</artifactId>
-        <type>pom</type>
-        <version>${spring-boot.version}</version>
-        <scope>import</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.springframework.cloud</groupId>
-        <artifactId>spring-cloud-dependencies</artifactId>
-        <type>pom</type>
-        <version>${spring-cloud.version}</version>
-        <scope>import</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
 
   <dependencies>
 
     <dependency>
       <groupId>com.camara</groupId>
       <artifactId>senf-api</artifactId>
-      <version>0.8.0</version>
+      <version>v0.10.0-rc</version>
     </dependency>
 
     <dependency>
       <groupId>com.camara</groupId>
       <artifactId>3gpp</artifactId>
-      <version>0.8.0</version>
+      <version>v0.10.0-rc</version>
     </dependency>
 
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
-
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-actuator</artifactId>
@@ -67,8 +47,6 @@
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
-      <version>${lombok.version}</version>
-      <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>org.mapstruct</groupId>
@@ -91,9 +69,30 @@
       <artifactId>spring-boot-starter-data-jpa</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.cloudevents</groupId>
+      <artifactId>cloudevents-spring</artifactId>
+      <version>2.5.0</version>
+    </dependency>
+    <dependency>
+      <groupId>io.cloudevents</groupId>
+      <artifactId>cloudevents-json-jackson</artifactId>
+      <version>2.5.0</version>
+    </dependency>
+    <dependency>
+      <groupId>io.cloudevents</groupId>
+      <artifactId>cloudevents-http-basic</artifactId>
+      <version>2.5.0</version>
+    </dependency>
+    <dependency>
+      <groupId>io.cloudevents</groupId>
+      <artifactId>cloudevents-kafka</artifactId>
+      <version>2.5.0</version>
+    </dependency>
+    <dependency>
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
       <scope>runtime</scope>
+      <version>2.2.224</version>
     </dependency>
     <dependency>
       <groupId>net.javacrumbs.shedlock</groupId>
@@ -117,18 +116,11 @@
       <artifactId>embedded-redis</artifactId> <!-- Embedded Redis for Unit Tests-->
       <version>0.7.3</version>
       <scope>test</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>org.slf4j</groupId>
-          <artifactId>slf4j-simple</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter</artifactId>
-      <version>5.9.0</version>
-      <scope>test</scope>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>32.0.1-jre</version>
     </dependency>
     <dependency>
       <groupId>org.awaitility</groupId>
@@ -154,6 +146,10 @@
       <artifactId>spring-security-oauth2-jose</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-oauth2-client</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.auth0</groupId>
       <artifactId>java-jwt</artifactId>
       <version>4.2.1</version>
@@ -164,21 +160,18 @@
       <version>4.0.1</version>
       <scope>runtime</scope>
     </dependency>
+    <dependency>
+      <groupId>org.springframework.kafka</groupId>
+      <artifactId>spring-kafka</artifactId>
+    </dependency>
   </dependencies>
-
-  <repositories>
-    <repository>
-      <id>gitlab-maven</id>
-      <url>https://repo.maven.apache.org/maven2/</url>
-    </repository>
-  </repositories>
 
   <build>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.0.0-M7</version>
+        <version>${maven-plugin.version}</version>
         <configuration>
           <argLine>
             @{surefireArgLine}
@@ -190,12 +183,12 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
-        <version>3.0.0-M7</version>
+        <version>${maven-plugin.version}</version>
       </plugin>
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
-        <version>3.0.1</version>
+        <version>${spring.boot.version}</version>
         <executions>
           <execution>
             <goals>
@@ -249,5 +242,4 @@
       </plugin>
     </plugins>
   </build>
-
 </project>

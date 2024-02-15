@@ -2,11 +2,10 @@
  * ---license-start
  * CAMARA Project
  * ---
- * Copyright (C) 2022 - 2023 Contributors | Deutsche Telekom AG to CAMARA a Series of LF
- *             Projects, LLC
- * The contributor of this file confirms his sign-off for the
- * Developer
- *             Certificate of Origin (http://developercertificate.org).
+ * Copyright (C) 2022 - 2024 Contributors | Deutsche Telekom AG to CAMARA a Series of LF Projects, LLC
+ *
+ * The contributor of this file confirms his sign-off for the Developer Certificate of Origin
+ *             (https://developercertificate.org).
  * ---
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +21,7 @@
  * ---license-end
  */
 
+
 package com.camara.qod.security;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -29,23 +29,21 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
-@ConditionalOnProperty(value = "enhanced-token-validation.enabled")
+@ConditionalOnProperty(prefix = "app", name = "keycloak.enabled", havingValue = "false", matchIfMissing = true)
 @EnableWebSecurity
 public class SecurityConfig {
 
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    http.authorizeHttpRequests(authorizeRequest -> {
-      authorizeRequest.requestMatchers("/swagger-ui/**").permitAll();
-      authorizeRequest.requestMatchers("/v3/api-docs/**").permitAll();
-      authorizeRequest.requestMatchers("/actuator/**").permitAll();
-      authorizeRequest.requestMatchers("/qod-api.yaml").permitAll();
-      authorizeRequest.anyRequest().authenticated();
-    }).csrf().disable();
+    http.authorizeHttpRequests(authorizeRequest -> authorizeRequest.anyRequest().permitAll())
+        .csrf(AbstractHttpConfigurer::disable)
+        .headers(
+            httpSecurityHeadersConfigurer -> httpSecurityHeadersConfigurer.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin));
     return http.build();
   }
 }
-

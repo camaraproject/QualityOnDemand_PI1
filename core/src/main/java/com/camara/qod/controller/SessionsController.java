@@ -2,11 +2,10 @@
  * ---license-start
  * CAMARA Project
  * ---
- * Copyright (C) 2022 - 2023 Contributors | Deutsche Telekom AG to CAMARA a Series of LF
- *             Projects, LLC
- * The contributor of this file confirms his sign-off for the
- * Developer
- *             Certificate of Origin (http://developercertificate.org).
+ * Copyright (C) 2022 - 2024 Contributors | Deutsche Telekom AG to CAMARA a Series of LF Projects, LLC
+ *
+ * The contributor of this file confirms his sign-off for the Developer Certificate of Origin
+ *             (https://developercertificate.org).
  * ---
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,14 +25,13 @@ package com.camara.qod.controller;
 
 import com.camara.qod.api.SessionsApiDelegate;
 import com.camara.qod.api.model.CreateSession;
+import com.camara.qod.api.model.ExtendSessionDuration;
 import com.camara.qod.api.model.SessionInfo;
-import com.camara.qod.service.QodService;
+import com.camara.qod.service.SessionService;
 import com.camara.qod.service.ValidationService;
 import java.net.URI;
-import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -47,9 +45,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 @RequiredArgsConstructor
 public class SessionsController implements SessionsApiDelegate {
 
-  @Value("${qod.duration.default:600}")
-  private int defaultDuration;
-  private final QodService qodService;
+  private final SessionService sessionService;
 
   private final ValidationService validationService;
 
@@ -62,14 +58,12 @@ public class SessionsController implements SessionsApiDelegate {
    */
   @Override
   public ResponseEntity<SessionInfo> createSession(CreateSession createSession) {
-    createSession.setDuration(
-        Optional.ofNullable(createSession.getDuration()).orElse(defaultDuration));
     validationService.validate(createSession);
-    SessionInfo sessionInfo = qodService.createSession(createSession);
+    SessionInfo sessionInfo = sessionService.createSession(createSession);
 
     URI location = ServletUriComponentsBuilder.fromCurrentRequest()
         .path("/{id}")
-        .buildAndExpand(sessionInfo.getId())
+        .buildAndExpand(sessionInfo.getSessionId())
         .toUri();
     return ResponseEntity.created(location).body(sessionInfo);
   }
@@ -83,7 +77,7 @@ public class SessionsController implements SessionsApiDelegate {
    */
   @Override
   public ResponseEntity<SessionInfo> getSession(UUID sessionId) {
-    SessionInfo sessionInfo = qodService.getSession(sessionId);
+    SessionInfo sessionInfo = sessionService.getSession(sessionId);
     return ResponseEntity.status(HttpStatus.OK).body(sessionInfo);
   }
 
@@ -96,7 +90,21 @@ public class SessionsController implements SessionsApiDelegate {
    */
   @Override
   public ResponseEntity<Void> deleteSession(UUID sessionId) {
-    qodService.deleteSession(sessionId);
+    sessionService.deleteSession(sessionId);
     return ResponseEntity.noContent().build();
+  }
+
+  /**
+   * POST /sessions/{sessionId}/extend: Extend the duration of an active QoS session.
+   *
+   * @param sessionId             Session ID that was obtained from the createSession operation (required)
+   * @param extendSessionDuration Parameters to extend the duration of an active session (required)
+   * @return Contains information about active session (status code 200) or Unauthorized (status code 401) or Forbidden (status code 403) or
+   *     Session not found (status code 404) or Service unavailable (status code 503)
+   */
+  @Override
+  public ResponseEntity<SessionInfo> extendQosSessionDuration(UUID sessionId, ExtendSessionDuration extendSessionDuration) {
+    SessionInfo sessionInfo = sessionService.extendQosSession(sessionId, extendSessionDuration.getRequestedAdditionalDuration());
+    return ResponseEntity.status(HttpStatus.OK).body(sessionInfo);
   }
 }

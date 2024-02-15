@@ -5,13 +5,13 @@
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>senf-coverage</artifactId>
-  <version>0.8.0</version>
+  <version>v0.10.0-rc</version>
   <packaging>pom</packaging>
 
   <parent>
     <groupId>com.camara</groupId>
     <artifactId>qod</artifactId>
-    <version>0.8.0</version>
+    <version>v0.10.0-rc</version>
   </parent>
 
   <properties>
@@ -29,7 +29,7 @@
     <dependency>
       <groupId>com.camara</groupId>
       <artifactId>senf-core</artifactId>
-      <version>0.8.0</version>
+      <version>v0.10.0-rc</version>
     </dependency>
   </dependencies>
 
@@ -51,7 +51,7 @@
         <configuration>
           <excludes>
             <exclude>**/*Configuration.class</exclude>
-            <exclude>**/*ScefAccessTokenExchanger.class</exclude>
+            <exclude>**/*NetworkAccessTokenExchanger.class</exclude>
             <exclude>**/*Config.class</exclude>
             <exclude>**/*MapperImpl.class</exclude>
             <exclude>**/*Config$*.*</exclude>

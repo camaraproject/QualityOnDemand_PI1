@@ -2,11 +2,10 @@
  * ---license-start
  * CAMARA Project
  * ---
- * Copyright (C) 2022 - 2023 Contributors | Deutsche Telekom AG to CAMARA a Series of LF
- *             Projects, LLC
- * The contributor of this file confirms his sign-off for the
- * Developer
- *             Certificate of Origin (http://developercertificate.org).
+ * Copyright (C) 2022 - 2024 Contributors | Deutsche Telekom AG to CAMARA a Series of LF Projects, LLC
+ *
+ * The contributor of this file confirms his sign-off for the Developer Certificate of Origin
+ *             (https://developercertificate.org).
  * ---
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +23,8 @@
 
 package com.camara.qod.config;
 
-import com.camara.scef.api.ApiClient;
+import com.camara.network.api.ApiClient;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
@@ -33,6 +33,7 @@ import org.springframework.web.client.RestTemplate;
  * This class contains general configurations for the application.
  */
 @Configuration
+@ConditionalOnProperty(prefix = "network", name = "server.mock.enabled", havingValue = "false", matchIfMissing = true)
 public class AppConfig {
 
   private static final String BASE_URL_TEMPLATE = "%s/3gpp-as-session-with-qos/v1";
@@ -48,16 +49,16 @@ public class AppConfig {
    * @return the created client.
    */
   @Bean
-  public ApiClient apiClient(ScefConfig scefConfig) {
+  public ApiClient apiClient(NetworkConfig networkConfig) {
     ApiClient apiClient =
-        new ApiClient().setBasePath(String.format(BASE_URL_TEMPLATE, scefConfig.getApiRoot()));
-    if (scefConfig.getAuthMethod().equals("basic")) {
-      apiClient.setUsername(scefConfig.getUserName());
-      apiClient.setPassword(scefConfig.getPassword());
+        new ApiClient().setBasePath(String.format(BASE_URL_TEMPLATE, networkConfig.getApiRoot()));
+    if (networkConfig.getAuthMethod().equals("basic")) {
+      apiClient.setUsername(networkConfig.getUserName());
+      apiClient.setPassword(networkConfig.getPassword());
     } else {
-      apiClient.setAccessToken(scefConfig.getToken());
+      apiClient.setAccessToken(networkConfig.getToken());
     }
-    apiClient.setDebugging(scefConfig.getScefDebug());
+    apiClient.setDebugging(networkConfig.getNetworkDebug());
     return apiClient;
   }
 }

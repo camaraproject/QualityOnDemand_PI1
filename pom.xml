@@ -6,7 +6,7 @@
 
   <groupId>com.camara</groupId>
   <artifactId>qod</artifactId>
-  <version>0.8.0</version>
+  <version>v0.10.0-rc</version>
   <description>Service Enabling Function for Quality-of-Service</description>
   <organization>
     <name>Deutsche Telekom AG</name>
@@ -25,16 +25,25 @@
     <license.inceptionYear>2022</license.inceptionYear>
     <license.git.copyrightLastYear>2023</license.git.copyrightLastYear>
     <!--dependencies-->
-    <plugin.jacoco.version>0.8.8</plugin.jacoco.version>
-    <spotbugs.version>4.7.1.1</spotbugs.version>
-    <plugin.checkstyle.version>3.1.2</plugin.checkstyle.version>
-    <org.mapstruct.version>1.5.2.Final</org.mapstruct.version>
-    <lombok.version>1.18.24</lombok.version>
+    <code-generator.version>7.2.0</code-generator.version>
+    <datatype-threetenbp-version>2.12.2</datatype-threetenbp-version>
+    <jackson-databind-nullable>0.2.6</jackson-databind-nullable>
+    <jodatime-version>2.12.2</jodatime-version>
+    <lombok.version>1.18.30</lombok.version>
     <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
-    <shedlock-spring.version>4.42.0</shedlock-spring.version>
-    <springdoc.version>2.0.2</springdoc.version>
-    <spring-boot.version>3.0.2</spring-boot.version>
-    <spring-cloud.version>2022.0.1</spring-cloud.version>
+    <maven-plugin.version>3.2.2</maven-plugin.version>
+    <migbase64-version>2.2</migbase64-version>
+    <org.mapstruct.version>1.5.5.Final</org.mapstruct.version>
+    <plugin.checkstyle.version>3.3.1</plugin.checkstyle.version>
+    <plugin.jacoco.version>0.8.11</plugin.jacoco.version>
+    <shedlock-spring.version>5.2.0</shedlock-spring.version>
+    <spotbugs.version>4.8.2.0</spotbugs.version>
+    <spring.boot.version>3.2.1</spring.boot.version>
+    <spring.cloud.version>2023.0.0</spring.cloud.version>
+    <springdoc.version>2.3.0</springdoc.version>
+    <springfox-version>3.0.0</springfox-version>
+    <swagger-annotations-version>2.2.8</swagger-annotations-version>
+    <threetenbp-version>1.6.5</threetenbp-version>
   </properties>
 
   <modules>
@@ -43,6 +52,31 @@
     <module>3gpp</module>
     <module>coverage</module>
   </modules>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-dependencies</artifactId>
+        <version>${spring.boot.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-dependencies</artifactId>
+        <version>${spring.cloud.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.projectlombok</groupId>
+        <artifactId>lombok</artifactId>
+        <version>${lombok.version}</version>
+        <scope>provided</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <build>
     <plugins>
@@ -61,9 +95,9 @@
           <roots>src</roots>
           <trimHeaderLine>true</trimHeaderLine>
           <sectionDelimiter>---</sectionDelimiter>
-          <copyrightOwners>Contributors | ${project.organization.name} to CAMARA a Series of LF
-            Projects, LLC &#x0A;The contributor of this file confirms his sign-off for the &#x0A;Developer
-            Certificate of Origin (http://developercertificate.org).
+          <copyrightOwners>Contributors | ${project.organization.name} to CAMARA a Series of LF Projects, LLC
+            &#x0A;The contributor of this file confirms his sign-off for the Developer Certificate of Origin
+            (https://developercertificate.org).
           </copyrightOwners>
           <processStartTag>---license-start</processStartTag>
           <processEndTag>---license-end</processEndTag>
@@ -74,7 +108,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.9.0</version>
+        <version>3.11.0</version>
         <configuration>
           <compilerArgs>
             <arg>-parameters</arg>
@@ -107,7 +141,6 @@
         <configuration>
           <configLocation>checkstyle.xml</configLocation>
           <excludes>target/**/*</excludes>
-          <encoding>UTF-8</encoding>
           <consoleOutput>true</consoleOutput>
           <failsOnError>false</failsOnError>
           <failOnViolation>false</failOnViolation>
@@ -131,6 +164,19 @@
             <phase>package</phase>
             <goals>
               <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>de.chkal.maven</groupId>
+        <artifactId>gitlab-code-quality-plugin</artifactId>
+        <version>1.0.2</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>generate</goal>
             </goals>
           </execution>
         </executions>

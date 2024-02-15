@@ -15,6 +15,16 @@
     <root level="INFO">
       <appender-ref ref="ConsoleAppender"/>
     </root>
+    <logger name="com.camara" additivity="false" level="INFO">
+      <appender-ref ref="ConsoleAppender"/>
+    </logger>
+    <logger name="org.springframework" level="INFO"/>
+  </springProfile>
+
+  <springProfile name="debug">
+    <root level="INFO">
+      <appender-ref ref="ConsoleAppender"/>
+    </root>
     <logger name="com.camara" additivity="false" level="DEBUG">
       <appender-ref ref="ConsoleAppender"/>
     </logger>
@@ -53,7 +63,7 @@
     </logger>
   </springProfile>
 
-  <springProfile name="default,h2">
+  <springProfile name="default">
     <root level="INFO">
       <appender-ref ref="ConsoleAppender"/>
     </root>
