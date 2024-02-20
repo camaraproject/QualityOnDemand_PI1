@@ -2,11 +2,10 @@
  * ---license-start
  * CAMARA Project
  * ---
- * Copyright (C) 2022 - 2023 Contributors | Deutsche Telekom AG to CAMARA a Series of LF
- *             Projects, LLC
- * The contributor of this file confirms his sign-off for the
- * Developer
- *             Certificate of Origin (http://developercertificate.org).
+ * Copyright (C) 2022 - 2024 Contributors | Deutsche Telekom AG to CAMARA a Series of LF Projects, LLC
+ *
+ * The contributor of this file confirms his sign-off for the Developer Certificate of Origin
+ *             (https://developercertificate.org).
  * ---
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,24 +24,31 @@
 package com.camara.qod.controller;
 
 import static com.camara.qod.util.NotificationsTestData.NOTIFICATION_URI;
-import static com.camara.qod.util.NotificationsTestData.getNotificationRequest;
-import static com.camara.qod.util.NotificationsTestData.getNotificationRequestWithEmptyTransaction;
+import static com.camara.qod.util.NotificationsTestData.TEST_NOTIFICATION_REQUEST;
+import static com.camara.qod.util.NotificationsTestData.TEST_NOTIFICATION_REQUEST_EMPTY_TRANSACTION;
+import static com.camara.qod.util.NotificationsTestData.createTestNotificationRequest;
+import static com.camara.qod.util.TestData.getAsJsonFormat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.camara.network.api.model.UserPlaneEvent;
+import com.camara.network.api.notifications.NotificationsApiController;
+import com.camara.qod.annotation.UnsecuredWebMvcTest;
 import com.camara.qod.exception.ExceptionHandlerAdvice;
-import com.camara.qod.exception.SessionApiException;
-import com.camara.qod.service.QodService;
-import com.camara.scef.api.notifications.NotificationsApiController;
+import com.camara.qod.exception.QodApiException;
+import com.camara.qod.service.NotificationService;
+import com.camara.qod.service.SessionService;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
@@ -50,77 +56,94 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 
-@WebMvcTest(controllers = NotificationsApiController.class, excludeAutoConfiguration = {SecurityAutoConfiguration.class})
+@UnsecuredWebMvcTest(controllers = NotificationsApiController.class)
 @Import(value = {
     NotificationsController.class,
     ExceptionHandlerAdvice.class
 })
+@AutoConfigureMockMvc(addFilters = false)
 @ContextConfiguration(classes = NotificationsApiController.class)
 class NotificationControllerTest {
 
   @MockBean
-  QodService qodService;
+  private NotificationService notificationService;
+
+  @MockBean
+  private SessionService sessionService;
 
   @Autowired
   private MockMvc mockMvc;
 
   @Test
-  void notificationsPost_ok() throws Exception {
-    when(qodService.handleQosNotification(anyString(), any())).thenReturn(CompletableFuture.completedFuture(null));
+  void testNotificationsPost_NoContent_204() throws Exception {
+    when(notificationService.handleQosNotification(anyString(), any())).thenReturn(CompletableFuture.completedFuture(null));
 
     mockMvc.perform(MockMvcRequestBuilders
             .post(NOTIFICATION_URI)
             .accept(MediaType.APPLICATION_PROBLEM_JSON_VALUE)
             .contentType(MediaType.APPLICATION_JSON_VALUE)
-            .content(getNotificationRequest())) // UserPlaneNotificationData
-        .andDo(MockMvcResultHandlers.print())
+            .content(TEST_NOTIFICATION_REQUEST_EMPTY_TRANSACTION))
+        .andDo(print())
         .andExpect(status().isNoContent());
   }
 
-  @Test
-  void notificationsPost_ok_EmptyTransaction() throws Exception {
-    when(qodService.handleQosNotification(anyString(), any())).thenReturn(CompletableFuture.completedFuture(null));
+  @ParameterizedTest
+  @EnumSource(value = UserPlaneEvent.class)
+  void testNotificationsPost_AllEvents_NoContent_204(UserPlaneEvent event) throws Exception {
+    when(notificationService.handleQosNotification(anyString(), any())).thenReturn(CompletableFuture.completedFuture(null));
 
     mockMvc.perform(MockMvcRequestBuilders
             .post(NOTIFICATION_URI)
             .accept(MediaType.APPLICATION_PROBLEM_JSON_VALUE)
             .contentType(MediaType.APPLICATION_JSON_VALUE)
-            .content(getNotificationRequestWithEmptyTransaction())) // UserPlaneNotificationData
-        .andDo(MockMvcResultHandlers.print())
+            .content(getAsJsonFormat(createTestNotificationRequest(event))))
+        .andDo(print())
         .andExpect(status().isNoContent());
   }
 
   @Test
-  void notificationsPost_NotFound() throws Exception {
-    doThrow(new SessionApiException(HttpStatus.NOT_FOUND,
+  void testNotificationsPost_NoContent_EmptyTransaction_204() throws Exception {
+    when(notificationService.handleQosNotification(anyString(), any())).thenReturn(CompletableFuture.completedFuture(null));
+
+    mockMvc.perform(MockMvcRequestBuilders
+            .post(NOTIFICATION_URI)
+            .accept(MediaType.APPLICATION_PROBLEM_JSON_VALUE)
+            .contentType(MediaType.APPLICATION_JSON_VALUE)
+            .content(TEST_NOTIFICATION_REQUEST_EMPTY_TRANSACTION))
+        .andDo(print())
+        .andExpect(status().isNoContent());
+  }
+
+  @Test
+  void testNotificationsPost_NotFound_404() throws Exception {
+    doThrow(new QodApiException(HttpStatus.NOT_FOUND,
         "QoD session not found for session ID: 963ab9f5-26e8-48b9-a56e-52ecdeaa9172")).when(
-        qodService).handleQosNotification(anyString(), any());
+        notificationService).handleQosNotification(anyString(), any());
 
     mockMvc.perform(MockMvcRequestBuilders
             .post(NOTIFICATION_URI)
             .accept(MediaType.APPLICATION_PROBLEM_JSON_VALUE)
             .contentType(MediaType.APPLICATION_JSON_VALUE)
-            .content(getNotificationRequest())) // UserPlaneNotificationData
-        .andDo(MockMvcResultHandlers.print())
+            .content(TEST_NOTIFICATION_REQUEST))
+        .andDo(print())
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.message")
             .value("QoD session not found for session ID: 963ab9f5-26e8-48b9-a56e-52ecdeaa9172"));
   }
 
   @Test
-  void notificationsPost_ServiceUnavailable() throws Exception {
-    doThrow(new SessionApiException(HttpStatus.SERVICE_UNAVAILABLE,
+  void testNotificationsPost_ServiceUnavailable_503() throws Exception {
+    doThrow(new QodApiException(HttpStatus.SERVICE_UNAVAILABLE,
         "The service is currently not available")).when(
-        qodService).handleQosNotification(anyString(), any());
+        notificationService).handleQosNotification(anyString(), any());
 
     mockMvc.perform(MockMvcRequestBuilders
             .post(NOTIFICATION_URI)
             .accept(MediaType.APPLICATION_PROBLEM_JSON_VALUE)
             .contentType(MediaType.APPLICATION_JSON_VALUE)
-            .content(getNotificationRequest())) // UserPlaneNotificationData
-        .andDo(MockMvcResultHandlers.print())
+            .content(TEST_NOTIFICATION_REQUEST))
+        .andDo(print())
         .andExpect(status().isServiceUnavailable())
         .andExpect(jsonPath("$.message")
             .value("The service is currently not available"));

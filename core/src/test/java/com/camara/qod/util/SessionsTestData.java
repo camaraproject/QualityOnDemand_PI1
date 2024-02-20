@@ -2,11 +2,10 @@
  * ---license-start
  * CAMARA Project
  * ---
- * Copyright (C) 2022 - 2023 Contributors | Deutsche Telekom AG to CAMARA a Series of LF
- *             Projects, LLC
- * The contributor of this file confirms his sign-off for the
- * Developer
- *             Certificate of Origin (http://developercertificate.org).
+ * Copyright (C) 2022 - 2024 Contributors | Deutsche Telekom AG to CAMARA a Series of LF Projects, LLC
+ *
+ * The contributor of this file confirms his sign-off for the Developer Certificate of Origin
+ *             (https://developercertificate.org).
  * ---
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,16 +23,18 @@
 
 package com.camara.qod.util;
 
-import com.camara.qod.api.model.AsId;
+import com.camara.network.api.model.AsSessionWithQoSSubscription;
+import com.camara.qod.api.model.ApplicationServer;
 import com.camara.qod.api.model.CreateSession;
+import com.camara.qod.api.model.CreateSessionWebhook;
+import com.camara.qod.api.model.Device;
+import com.camara.qod.api.model.DeviceIpv4Addr;
 import com.camara.qod.api.model.PortsSpec;
 import com.camara.qod.api.model.PortsSpecRangesInner;
-import com.camara.qod.api.model.QosProfile;
+import com.camara.qod.api.model.QosStatus;
 import com.camara.qod.api.model.SessionInfo;
-import com.camara.qod.api.model.UeId;
 import com.camara.qod.entity.H2QosSession;
-import com.camara.qod.entity.RedisQosSession;
-import com.camara.scef.api.model.AsSessionWithQoSSubscription;
+import com.camara.qod.model.SupportedQosProfiles;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collections;
@@ -48,143 +49,152 @@ public class SessionsTestData extends TestData {
   public static final String SESSION_URI = "/qod/v0/sessions";
   public static final int DURATION_DEFAULT = 2;
   public static final String SESSION_UUID = "000ab9f5-26e8-48b9-a56e-52ecdeaa9172";
+  public static final String TEST_DEVICE_IPV4_ADDRESS = "172.24.11.4";
+  public static final String TEST_APP_SERVER_IPV4_ADDRESS = "200.24.24.2";
+  public static final String TEST_INVALID_AS_IPV4_ADDRESS = "172.24.11.4/18";
 
-  public static CreateSession createTestSession(QosProfile qosProfile) {
-    return createTestSession(qosProfile, new AsId().ipv4addr("200.24.24.2"));
+  public static final String SESSION_XML_REQUEST = """
+      <?xml version="1.0" encoding="UTF-8" ?>
+      <root>
+          <duration>7200</duration>
+          <ueId>
+              <externalId>123456789@domain.com</externalId>
+              <msisdn>123456789</msisdn>
+              <ipv4addr>192.168.0.0/24</ipv4addr>
+          </ueId>
+          <asId>
+              <ipv4addr>192.168.0.0/24</ipv4addr>
+          </asId>
+          <uePorts>
+              <ranges>
+                  <from>5010</from>
+                  <to>5020</to>
+              </ranges>
+              <ports>5060</ports>
+              <ports>5070</ports>
+          </uePorts>
+          <asPorts>
+              <ranges>
+                  <from>5010</from>
+                  <to>5020</to>
+              </ranges>
+              <ports>5060</ports>
+              <ports>5070</ports>
+          </asPorts>
+          <qos>QOS_E</qos>
+          <notificationUri>http://127.0.0.1:8000/notifications</notificationUri>
+          <notificationAuthToken>c8974e592c2fa383d4a3960714</notificationAuthToken>
+      </root>
+      """;
+
+
+  /**
+   * Creates test session with specified qosProfile.
+   *
+   * @param qosProfile - chosen QosProfile
+   * @return the {@link CreateSession}
+   */
+  public static CreateSession createTestSession(SupportedQosProfiles qosProfile) {
+    CreateSession session = createDefaultTestSession();
+    session.qosProfile(qosProfile.name());
+    return session;
   }
 
-  public static CreateSession createTestSession(QosProfile qosProfile, AsId asId) {
-    return createTestSession(qosProfile, asId, null, DURATION_DEFAULT);
-  }
-
-
+  /**
+   * Creates test session with specified duration.
+   *
+   * @param duration {@link Integer} value of duration in ms
+   * @return the {@link CreateSession}
+   */
   public static CreateSession createTestSession(Integer duration) {
-    return createTestSession(QosProfile.E, new AsId().ipv4addr("200.24.24.2"), null, duration);
+    CreateSession session = createDefaultTestSession();
+    session.duration(duration);
+    return session;
   }
 
   /**
-   * Creates a test session by params.
+   * Creates a test session with specified ports.
+   *
+   * @param portsRangeStart - beginning of the ports range
+   * @param portRangeEnd    - end of the ports range
+   * @param additionalPort  - additional single port outside the range
+   * @return the {@link CreateSession}
    */
-  public static CreateSession createTestSession(
-      QosProfile qosProfile, AsId asId, PortsSpec uePorts, Integer duration) {
-    return new CreateSession()
-        .ueId(new UeId().ipv4addr("172.24.11.4"))
-        .asId(asId)
-        .duration(duration)
-        .uePorts(uePorts)
-        .qos(qosProfile)
-        .notificationUri(URI.create("https://example.com"))
-        .notificationAuthToken("12345");
+  public static CreateSession createTestSession(int portsRangeStart, int portRangeEnd, int additionalPort) {
+    CreateSession session = createDefaultTestSession();
+    session.devicePorts(new PortsSpec()
+        .ranges(Collections.singletonList(new PortsSpecRangesInner()
+            .from(portsRangeStart)
+            .to(portRangeEnd)))
+        .ports(Collections.singletonList(additionalPort)));
+    return session;
+  }
+
+  public static CreateSession createValidTestSession() {
+    return createDefaultTestSession();
+  }
+
+  public static CreateSession createValidTestSessionWithGivenDuration(Integer duration) {
+    return createDefaultTestSessionWithDuration(duration);
+  }
+
+
+  /**
+   * Creates test session with invalid IPv4 (with subnet).
+   *
+   * @return the {@link CreateSession}
+   */
+  public static CreateSession createTestSessionWithInvalidAppServerNetwork() {
+    CreateSession session = createDefaultTestSession();
+    session.getApplicationServer().ipv4Address(TEST_INVALID_AS_IPV4_ADDRESS);
+    return session;
   }
 
   /**
-   * Creates test session request content.
+   * Creates test session with IPv4 in invalid format.
+   *
+   * @return the {@link CreateSession}
    */
-  public static String getTestSessionRequest() {
-    return "{"
-        + "\"duration\": 50,"
-        + "\"ueId\": {"
-        + "\"externalId\": \"123456789@domain.com\","
-        + "\"msisdn\": \"123456789\","
-        + "\"ipv4addr\": \"192.168.0.0/24\""
-        + "},"
-        + "\"asId\": {"
-        + "\"ipv4addr\": \"192.168.0.0/24\"},"
-        + "\"uePorts\": {"
-        + "\"ranges\": [{"
-        + "\"from\": 5010,"
-        + "\"to\": 5020}],"
-        + "\"ports\": [5060, 5070]"
-        + "},"
-        + "\"asPorts\": {"
-        + "\"ranges\": [{"
-        + "\"from\": 5010,"
-        + "\"to\": 5020}],"
-        + "\"ports\": [5060,5070]},"
-        + "\"qos\": \"QOS_E\","
-        + "\"notificationUri\": \"https://application-server.com/notifications\","
-        + "\"notificationAuthToken\": \"c8974e592c2fa383d4a3960714\"\n}";
-  }
-
-  /**
-   * Creates test session request content, with invalid network data, e.g. -/16 subnet.
-   */
-  public static String getTestSessionNetworkInvalid() {
-    return "{"
-        + "\"duration\": 50,"
-        + "\"ueId\": {"
-        + "\"externalId\": \"123456789@domain.com\","
-        + "\"msisdn\": \"123456789\","
-        + "\"ipv4addr\": \"198.51.100.1/16\""
-        + "},"
-        + "\"asId\": {"
-        + "\"ipv4addr\": \"198.51.100.1/18\"},"
-        + "\"uePorts\": {"
-        + "\"ranges\": [{"
-        + "\"from\": 5010,"
-        + "\"to\": 5020}],"
-        + "\"ports\": [5060, 5070]"
-        + "},"
-        + "\"asPorts\": {"
-        + "\"ranges\": [{"
-        + "\"from\": 5010,"
-        + "\"to\": 5020}],"
-        + "\"ports\": [5060,5070]},"
-        + "\"qos\": \"QOS_E\","
-        + "\"notificationUri\": \"https://application-server.com/notifications\","
-        + "\"notificationAuthToken\": \"c8974e592c2fa383d4a3960714\"\n}";
-  }
-
-  /**
-   * Creates test session request content, with invalid address data, e.g. 1987.51.100.1 IP.
-   */
-  public static String getTestSessionAddrInvalid() {
-    return "{"
-        + "\"duration\": 50,"
-        + "\"ueId\": {"
-        + "\"externalId\": \"123456789@domain.com\","
-        + "\"msisdn\": \"123456789\","
-        + "\"ipv4addr\": \"1923.168.0.0/24\""
-        + "},"
-        + "\"asId\": {"
-        + "\"ipv4addr\": \"192.168.0.0/24\"},"
-        + "\"uePorts\": {"
-        + "\"ranges\": [{"
-        + "\"from\": 5010,"
-        + "\"to\": 5020}],"
-        + "\"ports\": [5060, 5070]"
-        + "},"
-        + "\"asPorts\": {"
-        + "\"ranges\": [{"
-        + "\"from\": 5010,"
-        + "\"to\": 5020}],"
-        + "\"ports\": [5060,5070]},"
-        + "\"qos\": \"QOS_E\","
-        + "\"notificationUri\": \"https://application-server.com/notifications\","
-        + "\"notificationAuthToken\": \"c8974e592c2fa383d4a3960714\"\n}";
+  public static CreateSession createTestSessionWithWrongDeviceIpv4Format() {
+    CreateSession session = createDefaultTestSession();
+    session.setDevice(createDeviceWithIpv4("invalid"));
+    return session;
   }
 
   /**
    * Create a SessionInfo object sample.
+   *
+   * @return the {@link SessionInfo}
    */
   public static SessionInfo createSessionInfoSample() throws Exception {
-    SessionInfo info = new SessionInfo();
-    info.setId(UUID.fromString(SESSION_UUID));
-    info.setStartedAt(1665730582L);
-    info.setExpiresAt(1665730642L);
-    info.setMessages(Collections.emptyList());
-    info.setDuration(60);
-    info.ueId(new UeId().ipv4addr("198.51.100.1"));
-    info.asId(new AsId().ipv4addr("198.51.100.1"));
-    info.uePorts(new PortsSpec().ports(List.of(5021, 5022)).ranges(List.of(new PortsSpecRangesInner().from(5010).to(5020))));
-    info.asPorts(new PortsSpec().ports(List.of(5021, 5022)).ranges(List.of(new PortsSpecRangesInner().from(5010).to(5020))));
-    info.setQos(QosProfile.E);
-    info.setNotificationUri(new URI("http://application-server.com/notifications"));
-    info.setNotificationAuthToken("c8974e592c2fa383d4a3960714");
-
-    return info;
+    return new SessionInfo()
+        .sessionId(UUID.fromString(SESSION_UUID))
+        .startedAt(1665730582L)
+        .expiresAt(1665730642L)
+        .messages(Collections.emptyList())
+        .duration(60)
+        .device(createDeviceWithIpv4("198.51.100.1"))
+        .applicationServer(createApplicationServerWithIpv4("198.51.100.1"))
+        .devicePorts(new PortsSpec().ports(List.of(5021, 5022)).ranges(List.of(new PortsSpecRangesInner().from(5010).to(5020))))
+        .applicationServerPorts(new PortsSpec().ports(List.of(5021, 5022)).ranges(List.of(new PortsSpecRangesInner().from(5010).to(5020))))
+        .qosProfile(SupportedQosProfiles.QOS_E.name())
+        .webhook(
+            new CreateSessionWebhook()
+                .notificationUrl(new URI("https://application-server.com/notifications"))
+                .notificationAuthToken("c8974e592c2fa383d4a3960714")
+        );
   }
 
+  private static Device createDeviceWithIpv4(String ipv4) {
+    return new Device()
+        .ipv4Address(new DeviceIpv4Addr().publicAddress(ipv4)
+        );
+  }
+
+  private static ApplicationServer createApplicationServerWithIpv4(String ipv4) {
+    return new ApplicationServer()
+        .ipv4Address(ipv4);
+  }
 
   /**
    * Creates a {@link H2QosSession} for test usage.
@@ -198,38 +208,14 @@ public class SessionsTestData extends TestData {
         .startedAt(1665730582L)
         .expiresAt(1665730642L)
         .duration(DURATION_DEFAULT)
-        .ueId(new UeId().ipv4addr("198.51.100.1"))
-        .asId(new AsId().ipv4addr("198.51.100.1"))
-        .uePorts(new PortsSpec().ports(List.of(5021, 5022)).ranges(List.of(new PortsSpecRangesInner().from(5010).to(5020))))
-        .asPorts(new PortsSpec().ports(List.of(5021, 5022)).ranges(List.of(new PortsSpecRangesInner().from(5010).to(5020))))
-        .qos(QosProfile.L)
+        .device(createDeviceWithIpv4("198.51.100.1"))
+        .applicationServer(createApplicationServerWithIpv4("198.51.100.1"))
+        .devicePorts(new PortsSpec().ports(List.of(5021, 5022)).ranges(List.of(new PortsSpecRangesInner().from(5010).to(5020))))
+        .applicationServerPorts(new PortsSpec().ports(List.of(5021, 5022)).ranges(List.of(new PortsSpecRangesInner().from(5010).to(5020))))
+        .qosProfile(SupportedQosProfiles.QOS_L.name())
+        .qosStatus(QosStatus.REQUESTED)
         .subscriptionId("subscrId123")
-        .notificationUri(new URI("http://application-server.com/notifications"))
-        .notificationAuthToken("c8974e592c2fa383d4a3960714")
-        .expirationLockUntil(0)
-        .bookkeeperId(null)
-        .build();
-  }
-
-  /**
-   * Creates a {@link RedisQosSession} for test usage.
-   *
-   * @return the created {@link RedisQosSession}
-   * @throws URISyntaxException when there is no good URI
-   */
-  public static RedisQosSession getRedisQosSessionTestData() throws URISyntaxException {
-    return RedisQosSession.builder()
-        .id(UUID.randomUUID())
-        .startedAt(1665730582L)
-        .expiresAt(1665730642L)
-        .duration(DURATION_DEFAULT)
-        .ueId(new UeId().ipv4addr("198.51.100.1"))
-        .asId(new AsId().ipv4addr("198.51.100.1"))
-        .uePorts(new PortsSpec().ports(List.of(5021, 5022)).ranges(List.of(new PortsSpecRangesInner().from(5010).to(5020))))
-        .asPorts(new PortsSpec().ports(List.of(5021, 5022)).ranges(List.of(new PortsSpecRangesInner().from(5010).to(5020))))
-        .qos(QosProfile.L)
-        .subscriptionId("subscrId123")
-        .notificationUri(new URI("http://application-server.com/notifications"))
+        .notificationUrl(new URI("https://application-server.com/notifications"))
         .notificationAuthToken("c8974e592c2fa383d4a3960714")
         .expirationLockUntil(0)
         .bookkeeperId(null)
@@ -247,7 +233,7 @@ public class SessionsTestData extends TestData {
   }
 
   /**
-   * Create a sample response from NEF without the subscription-Id.
+   * Create a sample response from NEF without the subscription ID.
    *
    * @return {@link AsSessionWithQoSSubscription}
    */
@@ -255,4 +241,41 @@ public class SessionsTestData extends TestData {
     return new AsSessionWithQoSSubscription().self(null);
   }
 
+  /**
+   * Creates the default and valid test session.
+   *
+   * @return the {@link CreateSession}
+   */
+  private static CreateSession createDefaultTestSession() {
+    return new CreateSession()
+        .device(createDeviceWithIpv4(TEST_DEVICE_IPV4_ADDRESS))
+        .applicationServer(createApplicationServerWithIpv4(TEST_APP_SERVER_IPV4_ADDRESS))
+        .duration(DURATION_DEFAULT)
+        .devicePorts(null)
+        .qosProfile(SupportedQosProfiles.QOS_E.name())
+        .webhook(
+            new CreateSessionWebhook()
+                .notificationAuthToken("1234567890987654321012345")
+                .notificationUrl(URI.create("https://example.com"))
+        );
+  }
+
+  /**
+   * Creates the default and valid test session by given duration.
+   *
+   * @return the {@link CreateSession}
+   */
+  private static CreateSession createDefaultTestSessionWithDuration(Integer duration) {
+    return new CreateSession()
+        .device(createDeviceWithIpv4(TEST_DEVICE_IPV4_ADDRESS))
+        .applicationServer(createApplicationServerWithIpv4(TEST_APP_SERVER_IPV4_ADDRESS))
+        .duration(duration)
+        .devicePorts(null)
+        .qosProfile(SupportedQosProfiles.QOS_E.name())
+        .webhook(
+            new CreateSessionWebhook()
+                .notificationAuthToken("1234567890987654321012345")
+                .notificationUrl(URI.create("https://example.com"))
+        );
+  }
 }

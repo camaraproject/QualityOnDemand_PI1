@@ -2,11 +2,10 @@
  * ---license-start
  * CAMARA Project
  * ---
- * Copyright (C) 2022 - 2023 Contributors | Deutsche Telekom AG to CAMARA a Series of LF
- *             Projects, LLC
- * The contributor of this file confirms his sign-off for the
- * Developer
- *             Certificate of Origin (http://developercertificate.org).
+ * Copyright (C) 2022 - 2024 Contributors | Deutsche Telekom AG to CAMARA a Series of LF Projects, LLC
+ *
+ * The contributor of this file confirms his sign-off for the Developer Certificate of Origin
+ *             (https://developercertificate.org).
  * ---
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,11 +54,11 @@ public class QodConfig {
   @Value("${qod.expiration.lock-time}")
   private int qosExpirationLockTimeInSeconds;
   @Value("${qod.mask-sensible-data}")
-  private Boolean qosMaskSensibleData;
-  @Value("${qod.allow-multiple-ueaddr}")
-  private Boolean qosAllowMultipleUeAddr;
+  private boolean qosMaskSensibleData;
+  @Value("${qod.allow-multiple-deviceaddr}")
+  private boolean qosAllowMultipleDeviceAddr;
   @Value("${qod.availability.enabled}")
-  private Boolean qosAvailabilityEnabled;
+  private boolean qosAvailabilityEnabled;
   @Value("${qod.availability.url}")
   private String qosAvailabilityUrl;
 }

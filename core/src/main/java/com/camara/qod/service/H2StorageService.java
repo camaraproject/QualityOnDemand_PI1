@@ -2,11 +2,10 @@
  * ---license-start
  * CAMARA Project
  * ---
- * Copyright (C) 2022 - 2023 Contributors | Deutsche Telekom AG to CAMARA a Series of LF
- *             Projects, LLC
- * The contributor of this file confirms his sign-off for the
- * Developer
- *             Certificate of Origin (http://developercertificate.org).
+ * Copyright (C) 2022 - 2024 Contributors | Deutsche Telekom AG to CAMARA a Series of LF Projects, LLC
+ *
+ * The contributor of this file confirms his sign-off for the Developer Certificate of Origin
+ *             (https://developercertificate.org).
  * ---
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +24,8 @@
 package com.camara.qod.service;
 
 import com.camara.qod.api.model.CreateSession;
+import com.camara.qod.api.model.QosStatus;
+import com.camara.qod.config.NetworkConfig;
 import com.camara.qod.entity.H2QosSession;
 import com.camara.qod.mapping.StorageModelMapper;
 import com.camara.qod.model.QosSession;
@@ -33,6 +34,7 @@ import com.camara.qod.repository.QodSessionH2Repository;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import lombok.Generated;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
@@ -44,11 +46,17 @@ public class H2StorageService implements StorageService {
 
   private final StorageModelMapper storageModelMapper;
   private final QodSessionH2Repository sessionRepo;
-
+  private final NetworkConfig networkConfig;
 
   @Override
   public QosSession saveSession(long startedAt, long expiresAt, UUID uuid, CreateSession session, String subscriptionId,
       UUID bookkeeperId) {
+
+    var qosStatus = networkConfig.isSupportedEventResourceAllocation() ? QosStatus.REQUESTED : QosStatus.AVAILABLE;
+
+    var webhook = session.getWebhook();
+    var notificationUrl = webhook != null ? webhook.getNotificationUrl() : null;
+    var notificationAuthToken = webhook != null ? webhook.getNotificationAuthToken() : null;
 
     H2QosSession h2QosSession =
         H2QosSession.builder()
@@ -56,15 +64,16 @@ public class H2StorageService implements StorageService {
             .startedAt(startedAt)
             .expiresAt(expiresAt)
             .duration(session.getDuration())
-            .ueIpv4addr(session.getUeId().getIpv4addr())
-            .ueId(session.getUeId())
-            .asId(session.getAsId())
-            .uePorts(session.getUePorts())
-            .asPorts(session.getAsPorts())
-            .qos(session.getQos())
+            .deviceIpv4addr(session.getDevice().getIpv4Address().getPublicAddress())
+            .device(session.getDevice())
+            .applicationServer(session.getApplicationServer())
+            .devicePorts(session.getDevicePorts())
+            .applicationServerPorts(session.getApplicationServerPorts())
+            .qosProfile(session.getQosProfile())
+            .qosStatus(qosStatus)
             .subscriptionId(subscriptionId)
-            .notificationUri(session.getNotificationUri())
-            .notificationAuthToken(session.getNotificationAuthToken())
+            .notificationUrl(notificationUrl)
+            .notificationAuthToken(notificationAuthToken)
             .expirationLockUntil(0) // Expiration Lock is initialised with 0, gets updated when an
             // ExpiredSessionTask is created
             .bookkeeperId(bookkeeperId)
@@ -90,6 +99,12 @@ public class H2StorageService implements StorageService {
     sessionRepo.deleteById(id);
   }
 
+  @Generated
+  @Override
+  public void removeExpiration(UUID id) {
+    // not implemented
+  }
+
   @Override
   public List<QosSessionIdWithExpiration> getSessionsThatExpireUntil(Long expirationTime) {
     List<H2QosSession> qosSessionExpirationList = sessionRepo.findByExpiresAtLessThan(expirationTime);
@@ -97,9 +112,9 @@ public class H2StorageService implements StorageService {
   }
 
   @Override
-  public List<QosSession> findByUeIpv4addr(String ipAddr) {
+  public List<QosSession> findByDeviceIpv4addr(String ipAddr) {
     return sessionRepo
-        .findByUeIpv4addr(ipAddr)
+        .findByDeviceIpv4addr(ipAddr)
         .stream()
         .map(storageModelMapper::mapToLibraryQosSession)
         .toList();

@@ -2,11 +2,10 @@
  * ---license-start
  * CAMARA Project
  * ---
- * Copyright (C) 2022 - 2023 Contributors | Deutsche Telekom AG to CAMARA a Series of LF
- *             Projects, LLC
- * The contributor of this file confirms his sign-off for the
- * Developer
- *             Certificate of Origin (http://developercertificate.org).
+ * Copyright (C) 2022 - 2024 Contributors | Deutsche Telekom AG to CAMARA a Series of LF Projects, LLC
+ *
+ * The contributor of this file confirms his sign-off for the Developer Certificate of Origin
+ *             (https://developercertificate.org).
  * ---
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +23,7 @@
 
 package com.camara.qod.service;
 
-import com.camara.qod.config.ScefConfig;
+import com.camara.qod.config.NetworkConfig;
 import com.camara.qod.model.AccessTokenResponse;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -41,10 +40,10 @@ import org.springframework.web.client.RestTemplate;
 @Service
 @AllArgsConstructor
 @Slf4j
-public class ScefAccessTokenExchanger {
+public class NetworkAccessTokenExchanger {
 
   private final RestTemplate restTemplate;
-  private final ScefConfig scefConfig;
+  private final NetworkConfig networkConfig;
 
   private static MultiValueMap<String, String> createForm() {
     MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
@@ -59,7 +58,7 @@ public class ScefAccessTokenExchanger {
     HttpHeaders headers = createHeaders();
     MultiValueMap<String, String> params = createForm();
     HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
-    ResponseEntity<AccessTokenResponse> response = restTemplate.postForEntity(scefConfig.getTokenEndpoint(), request,
+    ResponseEntity<AccessTokenResponse> response = restTemplate.postForEntity(networkConfig.getTokenEndpoint(), request,
         AccessTokenResponse.class);
     AccessTokenResponse accessTokenResponse = response.getBody();
     if (accessTokenResponse != null) {
@@ -74,7 +73,7 @@ public class ScefAccessTokenExchanger {
     HttpHeaders headers = new HttpHeaders();
     headers.setAccept(List.of(MediaType.APPLICATION_JSON));
     headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-    headers.setBasicAuth(scefConfig.getClientId(), scefConfig.getClientSecret());
+    headers.setBasicAuth(networkConfig.getClientId(), networkConfig.getClientSecret());
     return headers;
   }
 }

@@ -2,11 +2,10 @@
  * ---license-start
  * CAMARA Project
  * ---
- * Copyright (C) 2022 - 2023 Contributors | Deutsche Telekom AG to CAMARA a Series of LF
- *             Projects, LLC
- * The contributor of this file confirms his sign-off for the
- * Developer
- *             Certificate of Origin (http://developercertificate.org).
+ * Copyright (C) 2022 - 2024 Contributors | Deutsche Telekom AG to CAMARA a Series of LF Projects, LLC
+ *
+ * The contributor of this file confirms his sign-off for the Developer Certificate of Origin
+ *             (https://developercertificate.org).
  * ---
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,12 +23,16 @@
 
 package com.camara.qod.controller;
 
+import com.camara.network.api.model.UserPlaneEvent;
+import com.camara.network.api.model.UserPlaneEventReport;
+import com.camara.network.api.model.UserPlaneNotificationData;
+import com.camara.network.api.notifications.NotificationsApi;
+import com.camara.network.api.notifications.NotificationsApiDelegate;
+import com.camara.qod.api.model.QosStatus;
 import com.camara.qod.commons.Util;
-import com.camara.qod.service.QodService;
-import com.camara.scef.api.model.UserPlaneEvent;
-import com.camara.scef.api.model.UserPlaneNotificationData;
-import com.camara.scef.api.notifications.NotificationsApi;
-import com.camara.scef.api.notifications.NotificationsApiDelegate;
+import com.camara.qod.service.NotificationService;
+import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -43,10 +46,10 @@ import org.springframework.stereotype.Controller;
 @Slf4j
 public class NotificationsController implements NotificationsApiDelegate {
 
-  private final QodService qodService;
+  private final NotificationService notificationService;
 
   /**
-   * POST /notifications : notify bearer level event(s) from the SCEF to the SCS/AS.
+   * POST /notifications: notify bearer level event(s) from the SCEF to the SCS/AS.
    *
    * @see NotificationsApi#notificationsPost
    */
@@ -56,15 +59,17 @@ public class NotificationsController implements NotificationsApiDelegate {
     log.info("received notification");
     log.info(userPlaneNotificationData.toString());
 
-    boolean isSessionTerminationEvent =
-        userPlaneNotificationData.getEventReports().stream()
-            .anyMatch(report -> report.getEvent().equals(UserPlaneEvent.SESSION_TERMINATION));
+    String subscriptionId = Util.extractSubscriptionId(userPlaneNotificationData.getTransaction());
+    List<@Valid UserPlaneEventReport> eventReports = userPlaneNotificationData.getEventReports();
 
-    if (isSessionTerminationEvent) {
-      String subscriptionId = Util.subscriptionId(userPlaneNotificationData.getTransaction());
-      qodService.handleQosNotification(subscriptionId, UserPlaneEvent.SESSION_TERMINATION);
+    for (UserPlaneEventReport report : eventReports) {
+      switch (report.getEvent()) {
+        case SESSION_TERMINATION -> notificationService.handleQosNotification(subscriptionId, UserPlaneEvent.SESSION_TERMINATION);
+        case SUCCESSFUL_RESOURCES_ALLOCATION -> notificationService.setQosStatusForSession(subscriptionId, QosStatus.AVAILABLE);
+        case FAILED_RESOURCES_ALLOCATION -> notificationService.setQosStatusForSession(subscriptionId, QosStatus.UNAVAILABLE);
+        default -> log.warn("Unhandled Notification Event <{}>", report.getEvent());
+      }
     }
-
     return ResponseEntity.noContent().build();
   }
 }

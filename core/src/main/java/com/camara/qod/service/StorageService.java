@@ -2,11 +2,10 @@
  * ---license-start
  * CAMARA Project
  * ---
- * Copyright (C) 2022 - 2023 Contributors | Deutsche Telekom AG to CAMARA a Series of LF
- *             Projects, LLC
- * The contributor of this file confirms his sign-off for the
- * Developer
- *             Certificate of Origin (http://developercertificate.org).
+ * Copyright (C) 2022 - 2024 Contributors | Deutsche Telekom AG to CAMARA a Series of LF Projects, LLC
+ *
+ * The contributor of this file confirms his sign-off for the Developer Certificate of Origin
+ *             (https://developercertificate.org).
  * ---
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -57,6 +56,8 @@ public interface StorageService {
 
   void deleteSession(UUID id);
 
+  void removeExpiration(UUID id);
+
   /**
    * Get QoS sessions with smaller expire time than the given time.
    *
@@ -65,7 +66,7 @@ public interface StorageService {
    */
   List<QosSessionIdWithExpiration> getSessionsThatExpireUntil(Long expirationTime);
 
-  List<QosSession> findByUeIpv4addr(String ipAddr);
+  List<QosSession> findByDeviceIpv4addr(String ipAddr);
 
   Optional<QosSession> findBySubscriptionId(String subscriptionId);
 }

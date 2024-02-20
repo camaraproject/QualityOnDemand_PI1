@@ -2,11 +2,10 @@
  * ---license-start
  * CAMARA Project
  * ---
- * Copyright (C) 2022 - 2023 Contributors | Deutsche Telekom AG to CAMARA a Series of LF
- *             Projects, LLC
- * The contributor of this file confirms his sign-off for the
- * Developer
- *             Certificate of Origin (http://developercertificate.org).
+ * Copyright (C) 2022 - 2024 Contributors | Deutsche Telekom AG to CAMARA a Series of LF Projects, LLC
+ *
+ * The contributor of this file confirms his sign-off for the Developer Certificate of Origin
+ *             (https://developercertificate.org).
  * ---
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +24,8 @@
 package com.camara.qod.service;
 
 import com.camara.qod.api.model.CreateSession;
+import com.camara.qod.api.model.QosStatus;
+import com.camara.qod.config.NetworkConfig;
 import com.camara.qod.entity.RedisQosSession;
 import com.camara.qod.mapping.StorageModelMapper;
 import com.camara.qod.model.QosSession;
@@ -50,34 +51,18 @@ public class RedisStorageService implements StorageService {
   private final RedisTemplate<String, String> redisTemplate;
   private final StorageModelMapper storageModelMapper;
   private final QodSessionRedisRepository sessionRepo;
+  private final NetworkConfig networkConfig;
 
   @Override
-  public RedisQosSession saveSession(long startedAt, long expiresAt, UUID uuid, CreateSession session, String subscriptionId,
+  public QosSession saveSession(long startedAt, long expiresAt, UUID uuid, CreateSession session, String subscriptionId,
       UUID bookkeeperId) {
+    var qosStatus = networkConfig.isSupportedEventResourceAllocation() ? QosStatus.REQUESTED : QosStatus.AVAILABLE;
 
-    RedisQosSession redisQosSession =
-        RedisQosSession.builder()
-            .id(uuid)
-            .startedAt(startedAt)
-            .expiresAt(expiresAt)
-            .duration(session.getDuration())
-            .ueIpv4addr(session.getUeId().getIpv4addr())
-            .ueId(session.getUeId())
-            .asId(session.getAsId())
-            .uePorts(session.getUePorts())
-            .asPorts(session.getAsPorts())
-            .qos(session.getQos())
-            .subscriptionId(subscriptionId)
-            .notificationUri(session.getNotificationUri())
-            .notificationAuthToken(session.getNotificationAuthToken())
-            .expirationLockUntil(0) // Expiration Lock is initialised with 0, gets updated when an
-            // ExpiredSessionTask is created
-            .bookkeeperId(bookkeeperId)
-            .build();
+    RedisQosSession redisQosSession = buildRedisQosSession(startedAt, expiresAt, uuid, session, subscriptionId, qosStatus, bookkeeperId);
     sessionRepo.save(redisQosSession);
-    // add an entry to a sorted set which contains the session id and the expiration time
     addExpiration(redisQosSession.getId(), redisQosSession.getExpiresAt());
-    return redisQosSession;
+
+    return storageModelMapper.mapToLibraryQosSession(redisQosSession);
   }
 
   @Override
@@ -85,7 +70,33 @@ public class RedisStorageService implements StorageService {
     RedisQosSession redisQosSession = sessionRepo.save(storageModelMapper.mapToRedisQosSession(qosSession));
     // add an entry to a sorted set which contains the session id and the expiration time
     addExpiration(redisQosSession.getId(), redisQosSession.getExpiresAt());
-    return redisQosSession;
+    return storageModelMapper.mapToLibraryQosSession(redisQosSession);
+  }
+
+  private RedisQosSession buildRedisQosSession(long startedAt, long expiresAt, UUID uuid, CreateSession session, String subscriptionId,
+      QosStatus qosStatus, UUID bookkeeperId) {
+    var webhook = session.getWebhook();
+    var notificationUrl = (webhook != null) ? webhook.getNotificationUrl() : null;
+    var notificationAuthToken = (webhook != null) ? webhook.getNotificationAuthToken() : null;
+
+    return RedisQosSession.builder()
+        .id(uuid)
+        .startedAt(startedAt)
+        .expiresAt(expiresAt)
+        .duration(session.getDuration())
+        .deviceIpv4addr(session.getDevice().getIpv4Address().getPublicAddress())
+        .device(session.getDevice())
+        .applicationServer(session.getApplicationServer())
+        .devicePorts(session.getDevicePorts())
+        .applicationServerPorts(session.getApplicationServerPorts())
+        .qosProfile(session.getQosProfile())
+        .qosStatus(qosStatus)
+        .subscriptionId(subscriptionId)
+        .notificationUrl(notificationUrl)
+        .notificationAuthToken(notificationAuthToken)
+        .expirationLockUntil(0) // Expiration Lock is initialized with 0, gets updated when an
+        .bookkeeperId(bookkeeperId)
+        .build();
   }
 
   @Override
@@ -104,7 +115,8 @@ public class RedisStorageService implements StorageService {
     redisTemplate.opsForZSet().add(QOS_SESSION_EXPIRATION_LIST_NAME, id.toString(), expiresAt);
   }
 
-  private void removeExpiration(UUID id) {
+  @Override
+  public void removeExpiration(UUID id) {
     redisTemplate.opsForZSet().remove(QOS_SESSION_EXPIRATION_LIST_NAME, id.toString());
   }
 
@@ -117,9 +129,9 @@ public class RedisStorageService implements StorageService {
   }
 
   @Override
-  public List<QosSession> findByUeIpv4addr(String ipAddr) {
+  public List<QosSession> findByDeviceIpv4addr(String ipAddr) {
     return sessionRepo
-        .findByUeIpv4addr(ipAddr)
+        .findByDeviceIpv4addr(ipAddr)
         .stream()
         .map(storageModelMapper::mapToLibraryQosSession)
         .toList();

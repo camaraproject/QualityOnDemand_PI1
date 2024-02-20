@@ -2,11 +2,10 @@
  * ---license-start
  * CAMARA Project
  * ---
- * Copyright (C) 2022 - 2023 Contributors | Deutsche Telekom AG to CAMARA a Series of LF
- *             Projects, LLC
- * The contributor of this file confirms his sign-off for the
- * Developer
- *             Certificate of Origin (http://developercertificate.org).
+ * Copyright (C) 2022 - 2024 Contributors | Deutsche Telekom AG to CAMARA a Series of LF Projects, LLC
+ *
+ * The contributor of this file confirms his sign-off for the Developer Certificate of Origin
+ *             (https://developercertificate.org).
  * ---
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,13 +39,17 @@ import org.springframework.data.redis.core.ZSetOperations;
 public interface StorageModelMapper {
 
   //Redis Operations
+  @Mapping(source = "sessionId", target = "id")
   RedisQosSession mapToRedisQosSession(QosSession qosSession);
 
   //H2 Operations
+  @Mapping(source = "sessionId", target = "id")
   H2QosSession mapToH2QosSession(QosSession qosSession);
 
+  @Mapping(source = "id", target = "sessionId")
   QosSession mapToLibraryQosSession(H2QosSession redisQosSession);
 
+  @Mapping(source = "id", target = "sessionId")
   QosSession mapToLibraryQosSession(RedisQosSession redisQosSession);
 
   @Mapping(target = "id", expression = "java(java.util.UUID.fromString(redisSet.getValue()))")

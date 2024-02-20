@@ -82,7 +82,6 @@ The QoD reference implementation has been qualified against the following networ
 
 | System Name        | Vendor       | Camara Testing Member  | Qualified  |
 |--------------------|--------------|------------------------|------------|
-| 5G-NEF OpenLab     | Nokia        | DT                     | Yes        |
 | 5G-NEF             | Ericsson     | DT                     | Yes        |
 
 We actively ask other Camara members to validate this implementation against their available backend network services and
@@ -95,7 +94,7 @@ Contribution and feedback is always welcome. For information how to contribute, 
 
 ## License
 
-Copyright (c) 2022 Contributors | Deutsche Telekom AG to CAMARA a Series of LF Projects, LLC
+Copyright (c) 2024 Contributors | Deutsche Telekom AG to CAMARA a Series of LF Projects, LLC
 
 All contributors / copyright owners license this file to you under the Apache License, Version 2.0 (the "License"); you
 may not use this file except in compliance with the License. You may obtain a copy of the License at

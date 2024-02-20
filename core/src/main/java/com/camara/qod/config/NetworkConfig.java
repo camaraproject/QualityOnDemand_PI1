@@ -2,11 +2,10 @@
  * ---license-start
  * CAMARA Project
  * ---
- * Copyright (C) 2022 - 2023 Contributors | Deutsche Telekom AG to CAMARA a Series of LF
- *             Projects, LLC
- * The contributor of this file confirms his sign-off for the
- * Developer
- *             Certificate of Origin (http://developercertificate.org).
+ * Copyright (C) 2022 - 2024 Contributors | Deutsche Telekom AG to CAMARA a Series of LF Projects, LLC
+ *
+ * The contributor of this file confirms his sign-off for the Developer Certificate of Origin
+ *             (https://developercertificate.org).
  * ---
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,58 +29,61 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * SCEF QoS API configuration, see <a href="http://www.3gpp.org/ftp/Specs/archive/29_series/29.122/">...</a>.
+ * Network QoS API configuration, see <a href="http://www.3gpp.org/ftp/Specs/archive/29_series/29.122/">...</a>.
  */
 @Configuration
 @Getter
 @ToString
-public class ScefConfig {
+public class NetworkConfig {
 
-  @Value("${scef.server.apiroot}")
+  @Value("${network.server.apiroot}")
   private String apiRoot;
 
-  @Value("${scef.server.flowid.qos-e}")
+  @Value("${network.server.flowid.qos-e}")
   private int flowIdQosE;
 
-  @Value("${scef.server.flowid.qos-s}")
+  @Value("${network.server.flowid.qos-s}")
   private int flowIdQosS;
 
-  @Value("${scef.server.flowid.qos-m}")
+  @Value("${network.server.flowid.qos-m}")
   private int flowIdQosM;
 
-  @Value("${scef.server.flowid.qos-l}")
+  @Value("${network.server.flowid.qos-l}")
   private int flowIdQosL;
 
-  @Value("${scef.server.scsasid}")
+  @Value("${network.server.scsasid}")
   private String scsAsId;
 
-  @Value("${scef.notifications.url}")
-  private String scefNotificationsDestination;
+  @Value("${network.notifications.url}")
+  private String networkNotificationsDestination;
 
-  @Value("${scef.auth.type}")
+  @Value("${network.auth.type}")
   private String authMethod;
 
-  @Value("${scef.auth.username}")
+  @Value("${network.auth.username}")
   private String userName;
 
-  @Value("${scef.auth.password}")
+  @Value("${network.auth.password}")
   private String password;
 
-  @Value("${scef.auth.oauth.token}")
+  @Value("${network.auth.oauth.token}")
   private String token;
 
-  @Value("${scef.auth.oauth2.token-endpoint}")
+  @Value("${network.auth.oauth2.token-endpoint}")
   private String tokenEndpoint;
 
-  @Value("${scef.auth.oauth2.client-id}")
+  @Value("${network.auth.oauth2.client-id}")
   private String clientId;
 
-  @Value("${scef.auth.oauth2.client-secret}")
+  @Value("${network.auth.oauth2.client-secret}")
   private String clientSecret;
 
-  @Value("${scef.debug}")
-  private Boolean scefDebug;
+  @Value("${network.debug}")
+  private Boolean networkDebug;
 
-  @Value("${scef.server.supportedFeatures}")
+  @Value("${network.server.supportedFeatures}")
   private String supportedFeatures;
+
+  @Value("${network.server.supported-event-type.resource-allocation:true}")
+  private boolean supportedEventResourceAllocation;
 }
