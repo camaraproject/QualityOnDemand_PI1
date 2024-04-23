@@ -26,15 +26,14 @@ package com.camara.qod.service;
 import com.camara.network.api.model.UserPlaneEvent;
 import com.camara.qod.api.model.QosStatus;
 import com.camara.qod.api.model.SessionInfo;
-import com.camara.qod.api.model.StatusInfo;
+import com.camara.qod.config.QodConfig;
+import com.camara.qod.mapping.SessionModelMapper;
 import com.camara.qod.model.QosSession;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import java.time.Instant;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @RequiredArgsConstructor
@@ -42,42 +41,45 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class NotificationService {
 
-  private final SessionService sessionService;
+  private final QodConfig qodConfig;
   private final StorageService storage;
   private final EventHubService eventHubService;
+  private final SessionModelMapper sessionModelMapper;
+
 
   /**
    * Handles the QoS notification.
    *
    * @param subscriptionId the subscriptionId
-   * @param event          the {@link UserPlaneEvent}
-   * @return {@link CompletableFuture}
    */
-  @Async
-  public CompletableFuture<Void> handleQosNotification(@NotBlank String subscriptionId, @NotNull UserPlaneEvent event) {
+  public void handleQosNotification(@NotBlank String subscriptionId, UserPlaneEvent event) {
     Optional<QosSession> sessionOptional = storage.findBySubscriptionId(subscriptionId);
-    if (sessionOptional.isPresent() && event.equals(UserPlaneEvent.SESSION_TERMINATION)) {
+    if (sessionOptional.isPresent()) {
       QosSession session = sessionOptional.get();
-      SessionInfo sessionInfo = sessionService.deleteSession(session.getSessionId());
-      eventHubService.sendEvent(sessionInfo, StatusInfo.NETWORK_TERMINATED);
+      switch (event) {
+        case SESSION_TERMINATION, FAILED_RESOURCES_ALLOCATION -> handleNetworkTermination(session);
+        case SUCCESSFUL_RESOURCES_ALLOCATION -> handleSuccessfulAllocation(session);
+        default -> log.warn("Unhandled Notification Event <{}>", event);
+      }
+    } else {
+      log.info("Callback Subscription-ID <{}> does not have a corresponding existing QoD-Session", subscriptionId);
     }
-    return CompletableFuture.completedFuture(null);
   }
 
-  /**
-   * Updates the {@link QosStatus} of a session.
-   *
-   * @param subscriptionId the subscriptionId for the corresponding {@link QosSession}.
-   * @param updatedStatus  the new {@link QosStatus}
-   */
-  public void setQosStatusForSession(String subscriptionId, QosStatus updatedStatus) {
-    Optional<QosSession> sessionOptional = storage.findBySubscriptionId(subscriptionId);
-    if (sessionOptional.isPresent() && sessionOptional.get().getQosStatus() != updatedStatus) {
-      QosSession qosSession = sessionOptional.get();
-      QosStatus oldStatus = qosSession.getQosStatus();
-      qosSession.setQosStatus(updatedStatus);
-      storage.saveSession(qosSession);
-      log.debug("Status of QosSession was updated from <{}> to <{}>", oldStatus, updatedStatus);
-    }
+  private void handleNetworkTermination(QosSession session) {
+    long deletionDelay = qodConfig.getDeletionDelay();
+    long updatedExpiration = Instant.now().plusSeconds(deletionDelay).getEpochSecond();
+    session.setExpiresAt(updatedExpiration);
+    session.setQosStatus(QosStatus.UNAVAILABLE);
+    log.info("The Network has terminated the session. The session will be deleted in <{}> seconds.", deletionDelay);
+    storage.saveSession(session);
+  }
+
+  private void handleSuccessfulAllocation(QosSession qosSession) {
+    qosSession.setQosStatus(QosStatus.AVAILABLE);
+    storage.saveSession(qosSession);
+    log.debug("Status of QosSession was updated to <{}>", qosSession.getQosStatus());
+    SessionInfo sessionInfo = sessionModelMapper.map(qosSession);
+    eventHubService.sendEvent(sessionInfo);
   }
 }

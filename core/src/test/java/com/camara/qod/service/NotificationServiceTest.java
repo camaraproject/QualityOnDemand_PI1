@@ -24,43 +24,40 @@
 package com.camara.qod.service;
 
 import static com.camara.qod.util.SessionsTestData.getH2QosSessionTestData;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import com.camara.network.api.AsSessionWithQoSApiSubscriptionLevelDeleteOperationApi;
 import com.camara.network.api.model.UserPlaneEvent;
 import com.camara.qod.api.model.QosStatus;
 import com.camara.qod.config.NetworkConfig;
 import com.camara.qod.config.QodConfig;
 import com.camara.qod.entity.H2QosSession;
-import com.camara.qod.exception.EventProducerException;
 import com.camara.qod.repository.QodSessionH2Repository;
-import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.web.client.ResourceAccessException;
 
 @SpringBootTest
 @EnableAutoConfiguration(exclude = {
@@ -79,9 +76,6 @@ class NotificationServiceTest {
   @MockBean
   private EventHubService eventHubService;
 
-  @MockBean
-  AsSessionWithQoSApiSubscriptionLevelDeleteOperationApi deleteOperationApi;
-
   @Autowired
   NetworkConfig networkConfig;
 
@@ -94,7 +88,7 @@ class NotificationServiceTest {
   @SneakyThrows
   @BeforeEach
   public void setUpTest() {
-    doNothing().when(eventHubService).sendEvent(any(), any());
+    when(eventHubService.sendEvent(any(), any())).thenReturn(CompletableFuture.completedFuture(null));
     H2QosSession savedSession = h2Repository.save(getH2QosSessionTestData());
     assertEquals(QosStatus.REQUESTED, savedSession.getQosStatus());
     savedSessionId = savedSession.getId();
@@ -107,86 +101,47 @@ class NotificationServiceTest {
   }
 
   @Test
-  void testHandleQosNotification_Ok_NoSubscriptionId() throws ExecutionException, InterruptedException {
-    final CompletableFuture<Void> result = notificationService.handleQosNotification("NotFoundId", UserPlaneEvent.SESSION_TERMINATION);
-    await().atMost(10, TimeUnit.SECONDS).until(result::isDone);
-    assertThat(result).isCompleted();
-    assertThat(result.get()).isNull();
-  }
-
-  @Test
-  void testHandleQosNotification_Ok_NotificationUrlIsNull() {
-    String errorMessage = "Notification aborted! No notificationUrl was given in the qosSession: xxx";
-    doThrow(new EventProducerException(errorMessage)).when(eventHubService).sendEvent(any(), any());
-
-    H2QosSession savedSession = h2Repository.findById(savedSessionId).orElse(null);
-    assertNotNull(savedSession);
-    savedSession.setNotificationUrl(null);
-
-    h2Repository.save(savedSession);
-
-    final CompletableFuture<Void> result =
-        notificationService.handleQosNotification(savedSession.getSubscriptionId(), UserPlaneEvent.SESSION_TERMINATION);
-    await().atMost(10, TimeUnit.SECONDS).until(result::isDone);
-    assertThat(result)
-        .isCompletedExceptionally()
-        .failsWithin(Duration.ZERO)
-        .withThrowableOfType(ExecutionException.class)
-        .withCauseInstanceOf(EventProducerException.class)
-        .withMessageContaining("");
-  }
-
-  @Test
-  void testHandleQosNotification_UnknownHost() {
-    String errorMessage = "I/O error on POST request for \"https://application-server.com/notifications/notifications\": "
-        + "application-server.com; nested exception is java.net.UnknownHostException: application-server.com";
-    doThrow(new ResourceAccessException(errorMessage)).when(eventHubService).sendEvent(any(), any());
-
-    final CompletableFuture<Void> result =
-        notificationService.handleQosNotification(savedSubscriptionId, UserPlaneEvent.SESSION_TERMINATION);
-    await().atMost(10, TimeUnit.SECONDS).until(result::isDone);
-    assertThat(result)
-        .isCompletedExceptionally()
-        .failsWithin(Duration.ZERO)
-        .withThrowableOfType(ExecutionException.class)
-        .withCauseInstanceOf(ResourceAccessException.class)
-        .withMessageContaining(errorMessage);
-  }
-
-  @Test
-  void testHandleQosNotification_CompleteFlow() throws Exception {
-    final CompletableFuture<Void> result = notificationService.handleQosNotification(savedSubscriptionId,
-        UserPlaneEvent.SESSION_TERMINATION);
-    await().atMost(10, TimeUnit.SECONDS).until(result::isDone);
-    assertThat(result).isCompleted();
-    assertThat(result.get()).isNull();
-  }
-
-  @Test
-  void testHandleQosNotification_NotFound() {
-    assertDoesNotThrow(() -> notificationService.handleQosNotification("123", UserPlaneEvent.SESSION_TERMINATION));
+  void testHandleQosNotification_SuccessfulResourceAllocation() {
+    assertDoesNotThrow(
+        () -> notificationService.handleQosNotification(savedSubscriptionId, UserPlaneEvent.SUCCESSFUL_RESOURCES_ALLOCATION));
+    H2QosSession entity = h2Repository.findBySubscriptionId(savedSubscriptionId).orElse(null);
+    assertNotNull(entity);
+    assertEquals(QosStatus.AVAILABLE, entity.getQosStatus());
+    verify(eventHubService, times(1)).sendEvent(any());
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"AVAILABLE", "UNAVAILABLE"})
-  void testSetQosStatusForSession_StatusUpdated(String qosStatusString) {
-    QosStatus updatedStatus = QosStatus.valueOf(qosStatusString);
-    notificationService.setQosStatusForSession(savedSubscriptionId, updatedStatus);
-    H2QosSession updatedSession = h2Repository.findBySubscriptionId(savedSubscriptionId).orElse(null);
-    assertNotNull(updatedSession);
-    assertEquals(updatedStatus, updatedSession.getQosStatus());
+  @EnumSource(names = {"SESSION_TERMINATION", "FAILED_RESOURCES_ALLOCATION"})
+  void testHandleQosNotification_DeletionDelay(UserPlaneEvent event) {
+    long deletionDelay = 2;
+    qodConfig.setDeletionDelay(deletionDelay);
+    long now = Instant.now().getEpochSecond();
+    H2QosSession entity = h2Repository.findBySubscriptionId(savedSubscriptionId).orElse(null);
+    assertNotNull(entity);
+    //Current remaining time of the session
+    assertTrue(now - entity.getExpiresAt() > deletionDelay);
+
+    assertDoesNotThrow(() -> notificationService.handleQosNotification(savedSubscriptionId, event));
+
+    entity = h2Repository.findBySubscriptionId(savedSubscriptionId).orElse(null);
+    assertNotNull(entity);
+    //Remaining time was reduced to 2
+    assertTrue(now - entity.getExpiresAt() <= deletionDelay);
   }
 
   @Test
-  void testSetQosStatusForSession_SessionNotFound() {
-    String notFoundId = "notFoundId";
-    assertDoesNotThrow(() -> notificationService.setQosStatusForSession(notFoundId, QosStatus.AVAILABLE));
-    assertFalse(h2Repository.findBySubscriptionId(notFoundId).isPresent());
+  @ExtendWith(OutputCaptureExtension.class)
+  void testHandleQosNotification_Ok_NoSubscriptionId(CapturedOutput output) {
+    assertDoesNotThrow(() -> notificationService.handleQosNotification("NotFoundId", UserPlaneEvent.SESSION_TERMINATION));
+    assertTrue(output.getAll().contains("Callback Subscription-ID <NotFoundId> does not have a corresponding existing QoD-Session"));
   }
 
   @Test
-  void testSetQosStatusForSession_StatusNotUpdated_EqualToExistingStatus() {
-    assertDoesNotThrow(() -> notificationService.setQosStatusForSession(savedSubscriptionId, QosStatus.REQUESTED));
+  @ExtendWith(OutputCaptureExtension.class)
+  void testHandleQosNotification_UnhandledEvent(CapturedOutput output) {
+    UserPlaneEvent event = UserPlaneEvent.QOS_NOT_GUARANTEED;
+    assertDoesNotThrow(() -> notificationService.handleQosNotification(savedSubscriptionId, event));
+    assertTrue(output.getAll().contains("Unhandled Notification Event <" + event + ">"));
   }
 
 }

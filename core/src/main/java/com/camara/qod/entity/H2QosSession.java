@@ -33,6 +33,8 @@ import com.camara.qod.util.PortSpecConverter;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
@@ -82,6 +84,7 @@ public class H2QosSession {
   private String notificationAuthToken;
   private long expirationLockUntil; // The lock ensures that the task is only scheduled once for expiration.
   private UUID bookkeeperId;
+  @Enumerated(EnumType.STRING)
   private QosStatus qosStatus;
 
 }

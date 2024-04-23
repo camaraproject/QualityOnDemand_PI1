@@ -1,12 +1,6 @@
 network:
-  server:
-    apiroot: http://localhost:8081
-    scsasid: scs
   debug: true
 
-qod:
-  availability:
-    url: http://localhost:8091
 spring:
   datasource:
     url: jdbc:h2:mem:qod;DB_CLOSE_DELAY=-1

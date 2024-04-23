@@ -25,11 +25,12 @@ package com.camara.qod.service;
 
 import com.camara.qod.api.model.CloudEvent.TypeEnum;
 import com.camara.qod.api.model.EventQosStatus;
+import com.camara.qod.api.model.QosStatus;
 import com.camara.qod.api.model.SessionInfo;
 import com.camara.qod.api.model.StatusInfo;
 import com.camara.qod.exception.QodApiException;
 import com.camara.qod.feign.EventHubClient;
-import com.camara.qod.kafka.CallbackEventProducer;
+import com.camara.qod.kafka.CloudEventProducer;
 import com.camara.qod.model.CloudEventData;
 import com.camara.qod.util.CloudEventSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -45,12 +46,14 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @RequiredArgsConstructor
@@ -59,18 +62,39 @@ import org.springframework.stereotype.Service;
 public class EventHubService {
 
   private static final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+  private final CloudEventProducer cloudEventProducer;
 
-  private final CallbackEventProducer callbackEventProducer;
   @Value("${qod.eventhub.horizon}")
   private boolean isEventhubHorizonConfigured;
+
   private final EventHubClient eventHubClient;
+
   @Value("${qod.cloud-event.source.url}")
   private String cloudEventSourceUrl;
 
+  /**
+   * Sends an asynchronous event without {@link StatusInfo}.
+   *
+   * @param sessionInfo {@link SessionInfo}
+   */
+  @Async
+  public CompletableFuture<Void> sendEvent(SessionInfo sessionInfo) {
+    sendEvent(sessionInfo, null);
+    return CompletableFuture.completedFuture(null);
+  }
+
+  /**
+   * Sends an event with {@link StatusInfo}.
+   *
+   * @param sessionInfo {@link SessionInfo}
+   * @param statusInfo  {@link StatusInfo}
+   */
   @SneakyThrows
-  protected void sendEvent(SessionInfo sessionInfo, StatusInfo statusInfo) {
+  @Async
+  public CompletableFuture<Void> sendEvent(SessionInfo sessionInfo, StatusInfo statusInfo) {
+    CompletableFuture<Void> completableFuture = CompletableFuture.completedFuture(null);
     if (isNotificationUrlMissing(sessionInfo)) {
-      return;
+      return completableFuture;
     }
     var cloudEvent = buildCloudEvent(sessionInfo, statusInfo);
     logCloudEvent(cloudEvent);
@@ -79,6 +103,7 @@ public class EventHubService {
     } else {
       sendCloudEventKafka(cloudEvent);
     }
+    return completableFuture;
   }
 
   private static boolean isNotificationUrlMissing(SessionInfo sessionInfo) {
@@ -88,7 +113,7 @@ public class EventHubService {
   }
 
   private void sendCloudEventKafka(CloudEvent cloudEvent) {
-    callbackEventProducer.sendEvent(cloudEvent);
+    cloudEventProducer.sendEvent(cloudEvent);
   }
 
   private void sendCloudEventHorizon(CloudEvent cloudEvent) {
@@ -105,9 +130,14 @@ public class EventHubService {
   private CloudEvent buildCloudEvent(SessionInfo session, StatusInfo statusInfo) {
     CloudEventData cloudEventData = new CloudEventData();
     cloudEventData.setSessionId(session.getSessionId());
-    cloudEventData.setQosStatus(EventQosStatus.UNAVAILABLE);
     cloudEventData.setStatusInfo(statusInfo);
     cloudEventData.setNotificationUrl(session.getWebhook().getNotificationUrl().toString());
+
+    if (session.getQosStatus() == QosStatus.AVAILABLE) {
+      cloudEventData.setQosStatus(EventQosStatus.AVAILABLE);
+    } else {
+      cloudEventData.setQosStatus(EventQosStatus.UNAVAILABLE);
+    }
 
     CloudEventBuilder cloudEventBuilder = CloudEventBuilder.v1() // v1 specversion
         .withId(UUID.randomUUID().toString())

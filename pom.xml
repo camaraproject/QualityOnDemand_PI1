@@ -6,7 +6,7 @@
 
   <groupId>com.camara</groupId>
   <artifactId>qod</artifactId>
-  <version>v0.10.0-rc</version>
+  <version>v0.10.1</version>
   <description>Service Enabling Function for Quality-of-Service</description>
   <organization>
     <name>Deutsche Telekom AG</name>
@@ -23,27 +23,40 @@
     <license.licenseName>apache_v2</license.licenseName>
     <license.projectName>CAMARA Project</license.projectName>
     <license.inceptionYear>2022</license.inceptionYear>
-    <license.git.copyrightLastYear>2023</license.git.copyrightLastYear>
+    <license.git.copyrightLastYear>2024</license.git.copyrightLastYear>
     <!--dependencies-->
-    <code-generator.version>7.2.0</code-generator.version>
-    <datatype-threetenbp-version>2.12.2</datatype-threetenbp-version>
+    <code-generator.version>7.4.0</code-generator.version>
+    <datatype-threetenbp-version>2.15.2</datatype-threetenbp-version>
     <jackson-databind-nullable>0.2.6</jackson-databind-nullable>
-    <jodatime-version>2.12.2</jodatime-version>
-    <lombok.version>1.18.30</lombok.version>
+    <jodatime-version>2.12.7</jodatime-version>
+    <lombok.version>1.18.32</lombok.version>
     <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
-    <maven-plugin.version>3.2.2</maven-plugin.version>
+    <maven-plugin.version>3.2.5</maven-plugin.version>
     <migbase64-version>2.2</migbase64-version>
-    <org.mapstruct.version>1.5.5.Final</org.mapstruct.version>
+    <org.mapstruct.version>1.6.0.Beta1</org.mapstruct.version>
     <plugin.checkstyle.version>3.3.1</plugin.checkstyle.version>
-    <plugin.jacoco.version>0.8.11</plugin.jacoco.version>
-    <shedlock-spring.version>5.2.0</shedlock-spring.version>
-    <spotbugs.version>4.8.2.0</spotbugs.version>
-    <spring.boot.version>3.2.1</spring.boot.version>
-    <spring.cloud.version>2023.0.0</spring.cloud.version>
-    <springdoc.version>2.3.0</springdoc.version>
+    <plugin.jacoco.version>0.8.12</plugin.jacoco.version>
+    <shedlock-spring.version>5.13.0</shedlock-spring.version>
+    <spotbugs.version>4.8.4.0</spotbugs.version>
+    <spring.boot.version>3.2.5</spring.boot.version>
+    <spring.cloud.version>2023.0.1</spring.cloud.version>
+    <springdoc.version>2.5.0</springdoc.version>
+    <jakarta-version>3.1.0-M2</jakarta-version>
     <springfox-version>3.0.0</springfox-version>
-    <swagger-annotations-version>2.2.8</swagger-annotations-version>
-    <threetenbp-version>1.6.5</threetenbp-version>
+    <swagger-annotations-version>2.2.21</swagger-annotations-version>
+    <threetenbp-version>1.6.9</threetenbp-version>
+    <checkstyle.version>10.15.0</checkstyle.version>
+    <java-jwt.version>4.4.0</java-jwt.version>
+    <javax.servlet-api.version>4.0.1</javax.servlet-api.version>
+    <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+    <gitlab-code-quality-plugin.version>1.1.0</gitlab-code-quality-plugin.version>
+    <guava.version>33.1.0-jre</guava.version>
+    <awaitility.version>4.2.1</awaitility.version>
+    <ipaddress.version>5.5.0</ipaddress.version>
+    <servlet-api.version>2.5</servlet-api.version>
+    <h2.version>2.2.224</h2.version>
+    <cloud-event.version>3.0.0</cloud-event.version>
+    <license-maven-plugin.version>2.4.0</license-maven-plugin.version>
   </properties>
 
   <modules>
@@ -83,7 +96,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>license-maven-plugin</artifactId>
-        <version>2.0.0</version>
+        <version>${license-maven-plugin.version}</version>
         <configuration>
           <outputDirectory>.</outputDirectory>
           <thirdPartyFilename>THIRD-PARTY.md</thirdPartyFilename>
@@ -108,7 +121,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.11.0</version>
+        <version>${maven-compiler-plugin.version}</version>
         <configuration>
           <compilerArgs>
             <arg>-parameters</arg>
@@ -155,7 +168,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>10.3.2</version>
+            <version>${checkstyle.version}</version>
           </dependency>
         </dependencies>
         <executions>
@@ -171,7 +184,7 @@
       <plugin>
         <groupId>de.chkal.maven</groupId>
         <artifactId>gitlab-code-quality-plugin</artifactId>
-        <version>1.0.2</version>
+        <version>${gitlab-code-quality-plugin.version}</version>
         <executions>
           <execution>
             <phase>package</phase>

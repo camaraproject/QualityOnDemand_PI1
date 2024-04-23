@@ -49,6 +49,7 @@ public class SecurityKeycloakConfig {
       authorizeRequest.requestMatchers(antMatcher("/actuator/**")).permitAll();
       authorizeRequest.requestMatchers(antMatcher("/qod-api.yaml")).permitAll();
       authorizeRequest.requestMatchers(antMatcher("/h2-console/*")).permitAll();
+      authorizeRequest.requestMatchers(antMatcher("/**/notifications")).permitAll();
       authorizeRequest.anyRequest().authenticated();
     }).csrf(AbstractHttpConfigurer::disable).headers(
         httpSecurityHeadersConfigurer -> httpSecurityHeadersConfigurer.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable));

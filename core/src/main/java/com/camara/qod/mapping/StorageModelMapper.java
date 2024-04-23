@@ -47,9 +47,11 @@ public interface StorageModelMapper {
   H2QosSession mapToH2QosSession(QosSession qosSession);
 
   @Mapping(source = "id", target = "sessionId")
+  @Mapping(target = "messages", ignore = true)
   QosSession mapToLibraryQosSession(H2QosSession redisQosSession);
 
   @Mapping(source = "id", target = "sessionId")
+  @Mapping(target = "messages", ignore = true)
   QosSession mapToLibraryQosSession(RedisQosSession redisQosSession);
 
   @Mapping(target = "id", expression = "java(java.util.UUID.fromString(redisSet.getValue()))")

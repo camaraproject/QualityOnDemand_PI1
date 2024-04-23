@@ -25,8 +25,8 @@ package com.camara.qod.util;
 
 import com.camara.network.api.model.AsSessionWithQoSSubscription;
 import com.camara.qod.api.model.ApplicationServer;
+import com.camara.qod.api.model.BaseSessionInfoWebhook;
 import com.camara.qod.api.model.CreateSession;
-import com.camara.qod.api.model.CreateSessionWebhook;
 import com.camara.qod.api.model.Device;
 import com.camara.qod.api.model.DeviceIpv4Addr;
 import com.camara.qod.api.model.PortsSpec;
@@ -34,6 +34,7 @@ import com.camara.qod.api.model.PortsSpecRangesInner;
 import com.camara.qod.api.model.QosStatus;
 import com.camara.qod.api.model.SessionInfo;
 import com.camara.qod.entity.H2QosSession;
+import com.camara.qod.model.QosSession;
 import com.camara.qod.model.SupportedQosProfiles;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -47,11 +48,15 @@ import java.util.UUID;
 public class SessionsTestData extends TestData {
 
   public static final String SESSION_URI = "/qod/v0/sessions";
-  public static final int DURATION_DEFAULT = 2;
+  public static final int DURATION_DEFAULT = 10;
   public static final String SESSION_UUID = "000ab9f5-26e8-48b9-a56e-52ecdeaa9172";
   public static final String TEST_DEVICE_IPV4_ADDRESS = "172.24.11.4";
+  public static final String TEST_DEVICE_IPV4_ADDRESS_UNKNOWN = "172.24.11.7";
+  public static final String TEST_DEVICE_IPV4_ADDRESS_WITH_NETWORK_SEGMENT = "172.24.11.4/12";
   public static final String TEST_APP_SERVER_IPV4_ADDRESS = "200.24.24.2";
-  public static final String TEST_INVALID_AS_IPV4_ADDRESS = "172.24.11.4/18";
+  public static final String TEST_INVALID_AS_IPV4_ADDRESS = "invalid";
+
+  public static final URI TEST_WEBHOOK_NOTIFICATION_URL = URI.create("https://example.com");
 
   public static final String SESSION_XML_REQUEST = """
       <?xml version="1.0" encoding="UTF-8" ?>
@@ -179,7 +184,7 @@ public class SessionsTestData extends TestData {
         .applicationServerPorts(new PortsSpec().ports(List.of(5021, 5022)).ranges(List.of(new PortsSpecRangesInner().from(5010).to(5020))))
         .qosProfile(SupportedQosProfiles.QOS_E.name())
         .webhook(
-            new CreateSessionWebhook()
+            new BaseSessionInfoWebhook()
                 .notificationUrl(new URI("https://application-server.com/notifications"))
                 .notificationAuthToken("c8974e592c2fa383d4a3960714")
         );
@@ -205,6 +210,32 @@ public class SessionsTestData extends TestData {
   public static H2QosSession getH2QosSessionTestData() throws URISyntaxException {
     return H2QosSession.builder()
         .id(UUID.randomUUID())
+        .startedAt(1665730582L)
+        .expiresAt(1665730642L)
+        .duration(DURATION_DEFAULT)
+        .device(createDeviceWithIpv4("198.51.100.1"))
+        .applicationServer(createApplicationServerWithIpv4("198.51.100.1"))
+        .devicePorts(new PortsSpec().ports(List.of(5021, 5022)).ranges(List.of(new PortsSpecRangesInner().from(5010).to(5020))))
+        .applicationServerPorts(new PortsSpec().ports(List.of(5021, 5022)).ranges(List.of(new PortsSpecRangesInner().from(5010).to(5020))))
+        .qosProfile(SupportedQosProfiles.QOS_L.name())
+        .qosStatus(QosStatus.REQUESTED)
+        .subscriptionId("subscrId123")
+        .notificationUrl(new URI("https://application-server.com/notifications"))
+        .notificationAuthToken("c8974e592c2fa383d4a3960714")
+        .expirationLockUntil(0)
+        .bookkeeperId(null)
+        .build();
+  }
+
+  /**
+   * Creates a {@link H2QosSession} for test usage.
+   *
+   * @return the created {@link H2QosSession}
+   * @throws URISyntaxException when there is no good URI
+   */
+  public static QosSession createQosSessionTestData(UUID sessionId) throws URISyntaxException {
+    return QosSession.builder()
+        .sessionId(sessionId)
         .startedAt(1665730582L)
         .expiresAt(1665730642L)
         .duration(DURATION_DEFAULT)
@@ -254,9 +285,28 @@ public class SessionsTestData extends TestData {
         .devicePorts(null)
         .qosProfile(SupportedQosProfiles.QOS_E.name())
         .webhook(
-            new CreateSessionWebhook()
+            new BaseSessionInfoWebhook()
                 .notificationAuthToken("1234567890987654321012345")
-                .notificationUrl(URI.create("https://example.com"))
+                .notificationUrl(TEST_WEBHOOK_NOTIFICATION_URL)
+        );
+  }
+
+  /**
+   * Creates the default and valid test session with Unknown IPv4 Address.
+   *
+   * @return the {@link CreateSession}
+   */
+  public static CreateSession createDefaultTestSessionWithUnknownIpv4() {
+    return new CreateSession()
+        .device(createDeviceWithIpv4(TEST_DEVICE_IPV4_ADDRESS_UNKNOWN))
+        .applicationServer(createApplicationServerWithIpv4(TEST_APP_SERVER_IPV4_ADDRESS))
+        .duration(DURATION_DEFAULT)
+        .devicePorts(null)
+        .qosProfile(SupportedQosProfiles.QOS_E.name())
+        .webhook(
+            new BaseSessionInfoWebhook()
+                .notificationAuthToken("1234567890987654321012345")
+                .notificationUrl(TEST_WEBHOOK_NOTIFICATION_URL)
         );
   }
 
@@ -273,9 +323,34 @@ public class SessionsTestData extends TestData {
         .devicePorts(null)
         .qosProfile(SupportedQosProfiles.QOS_E.name())
         .webhook(
-            new CreateSessionWebhook()
+            new BaseSessionInfoWebhook()
                 .notificationAuthToken("1234567890987654321012345")
-                .notificationUrl(URI.create("https://example.com"))
+                .notificationUrl(TEST_WEBHOOK_NOTIFICATION_URL)
         );
+  }
+
+  /**
+   * Creates a test {@link SessionInfo}.
+   *
+   * @return {@link SessionInfo}
+   */
+  public static SessionInfo createTestSessionInfo() {
+    return createTestSessionInfo(UUID.randomUUID());
+  }
+
+  /**
+   * Creates a test {@link SessionInfo} based on a sessionId.
+   *
+   * @param sessionId the sessionId for this session info
+   * @return {@link SessionInfo}
+   */
+  public static SessionInfo createTestSessionInfo(UUID sessionId) {
+    return new SessionInfo()
+        .sessionId(sessionId)
+        .device(new Device().ipv4Address(new DeviceIpv4Addr().publicAddress(TEST_DEVICE_IPV4_ADDRESS)))
+        .duration(DURATION_DEFAULT)
+        .webhook(new BaseSessionInfoWebhook()
+            .notificationUrl(TEST_WEBHOOK_NOTIFICATION_URL))
+        .qosStatus(QosStatus.AVAILABLE);
   }
 }

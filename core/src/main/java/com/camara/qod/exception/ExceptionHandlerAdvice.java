@@ -212,7 +212,7 @@ public class ExceptionHandlerAdvice {
         errorMessage = "The field '" + invalidField + "' is an unsupported parameter.";
       }
     } else if (throwable instanceof JsonMappingException jsonMappingException) {
-      List<JsonMappingException.Reference> jsonReferences = jsonMappingException.getPath();
+      List<Reference> jsonReferences = jsonMappingException.getPath();
       if (!jsonReferences.isEmpty()) {
         String invalidField = jsonReferences.get(0).getFieldName();
         errorMessage = SCHEMA_VALIDATION_FAILED_MESSAGE + invalidField;
@@ -287,7 +287,7 @@ public class ExceptionHandlerAdvice {
   @SneakyThrows
   @ExceptionHandler(NoResourceFoundException.class)
   public ResponseEntity<Object> handleException(NoResourceFoundException ex) {
-    log.error("No resource found exception occurred: {}", ex.getMessage());
+    log.debug("No resource found exception occurred: {}", ex.getMessage());
     throw ex;
   }
 }

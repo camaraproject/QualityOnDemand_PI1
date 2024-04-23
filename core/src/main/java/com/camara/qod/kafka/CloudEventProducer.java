@@ -21,8 +21,27 @@
  * ---license-end
  */
 
-package com.camara.qod.exception;
+package com.camara.qod.kafka;
 
-public enum ErrorCode {
-  INVALID_INPUT, VALIDATION_FAILED, PARAMETER_MISSING, NOT_ALLOWED, OUT_OF_RANGE
+import io.cloudevents.CloudEvent;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Component;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class CloudEventProducer {
+
+  private final KafkaTemplate<String, CloudEvent> kafkaTemplate;
+
+  @Value("${kafka.topic.webhook}")
+  private String qodTopic;
+
+  public void sendEvent(CloudEvent cloudEvent) {
+    log.info("Sending QoD CloudEvent: {} by topic: {}", cloudEvent, qodTopic);
+    kafkaTemplate.send(qodTopic, cloudEvent);
+  }
 }
