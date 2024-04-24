@@ -27,6 +27,7 @@ import com.camara.qod.api.SessionsApiDelegate;
 import com.camara.qod.api.model.CreateSession;
 import com.camara.qod.api.model.ExtendSessionDuration;
 import com.camara.qod.api.model.SessionInfo;
+import com.camara.qod.api.model.StatusInfo;
 import com.camara.qod.service.SessionService;
 import com.camara.qod.service.ValidationService;
 import java.net.URI;
@@ -46,7 +47,6 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 public class SessionsController implements SessionsApiDelegate {
 
   private final SessionService sessionService;
-
   private final ValidationService validationService;
 
   /**
@@ -90,7 +90,7 @@ public class SessionsController implements SessionsApiDelegate {
    */
   @Override
   public ResponseEntity<Void> deleteSession(UUID sessionId) {
-    sessionService.deleteSession(sessionId);
+    sessionService.deleteAndNotify(sessionId, StatusInfo.DELETE_REQUESTED);
     return ResponseEntity.noContent().build();
   }
 

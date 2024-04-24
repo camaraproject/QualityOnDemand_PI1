@@ -23,12 +23,10 @@
 
 package com.camara.qod.controller;
 
-import com.camara.network.api.model.UserPlaneEvent;
 import com.camara.network.api.model.UserPlaneEventReport;
 import com.camara.network.api.model.UserPlaneNotificationData;
 import com.camara.network.api.notifications.NotificationsApi;
 import com.camara.network.api.notifications.NotificationsApiDelegate;
-import com.camara.qod.api.model.QosStatus;
 import com.camara.qod.commons.Util;
 import com.camara.qod.service.NotificationService;
 import jakarta.validation.Valid;
@@ -63,12 +61,7 @@ public class NotificationsController implements NotificationsApiDelegate {
     List<@Valid UserPlaneEventReport> eventReports = userPlaneNotificationData.getEventReports();
 
     for (UserPlaneEventReport report : eventReports) {
-      switch (report.getEvent()) {
-        case SESSION_TERMINATION -> notificationService.handleQosNotification(subscriptionId, UserPlaneEvent.SESSION_TERMINATION);
-        case SUCCESSFUL_RESOURCES_ALLOCATION -> notificationService.setQosStatusForSession(subscriptionId, QosStatus.AVAILABLE);
-        case FAILED_RESOURCES_ALLOCATION -> notificationService.setQosStatusForSession(subscriptionId, QosStatus.UNAVAILABLE);
-        default -> log.warn("Unhandled Notification Event <{}>", report.getEvent());
-      }
+      notificationService.handleQosNotification(subscriptionId, report.getEvent());
     }
     return ResponseEntity.noContent().build();
   }

@@ -30,11 +30,15 @@ import com.camara.network.api.model.AsSessionWithQoSSubscription;
 import com.camara.network.api.model.FlowInfo;
 import com.camara.network.api.model.ProblemDetails;
 import com.camara.qod.api.model.CreateSession;
+import com.camara.qod.api.model.Duration;
 import com.camara.qod.api.model.Message;
 import com.camara.qod.api.model.PortsSpec;
 import com.camara.qod.api.model.PortsSpecRangesInner;
 import com.camara.qod.api.model.QosProfile;
+import com.camara.qod.api.model.QosProfileStatusEnum;
+import com.camara.qod.api.model.QosStatus;
 import com.camara.qod.api.model.SessionInfo;
+import com.camara.qod.api.model.StatusInfo;
 import com.camara.qod.commons.Util;
 import com.camara.qod.config.NetworkConfig;
 import com.camara.qod.config.QodConfig;
@@ -95,6 +99,8 @@ public class SessionService {
   private final AvailabilityServiceClient avsClient;
   private final ApiClient apiClient;
   private final NetworkAccessTokenExchanger networkAccessTokenExchanger;
+  private final EventHubService eventHubService;
+  private final QosProfileService qosProfileService;
 
   /**
    * Convert PortsSpec to NEF format.
@@ -225,16 +231,46 @@ public class SessionService {
     return false;
   }
 
+  private static long retrieveDurationInSeconds(Duration duration) {
+    long value = duration.getValue();
+    return switch (duration.getUnit()) {
+      case DAYS -> value * 86400;
+      case HOURS -> value * 3600;
+      case MINUTES -> value * 60;
+      case SECONDS -> value;
+      case MILLISECONDS -> value / 1000;
+      case MICROSECONDS -> value / 1_000_000;
+      case NANOSECONDS -> value / 1_000_000_000;
+    };
+  }
+
   @PostConstruct
   void setupApiClient() {
     postApi.setApiClient(apiClient);
     deleteApi.setApiClient(apiClient);
   }
 
+
   /**
-   * Creates & saves session in database.
+   * Creates a session and if the {@link QosStatus} is "AVAILABLE" then send an event directly to the webhook (if configured).
+   *
+   * @param session - the request for creating a session
+   * @return {@link SessionInfo}
    */
   public SessionInfo createSession(@NotNull CreateSession session) {
+    SessionInfo sessionInfo = createSessionInfo(session);
+    if (sessionInfo.getQosStatus() == QosStatus.AVAILABLE) {
+      eventHubService.sendEvent(sessionInfo);
+    }
+    return sessionInfo;
+  }
+
+  /**
+   * Creates & saves session in database.
+   *
+   * @param session The requested session
+   */
+  private SessionInfo createSessionInfo(CreateSession session) {
     SupportedQosProfiles supportedQosProfile = SupportedQosProfiles.getProfileFromString(session.getQosProfile());
     final int flowId = getFlowId(supportedQosProfile);
     List<Message> messages = new ArrayList<>();
@@ -243,16 +279,13 @@ public class SessionService {
     PortsSpec applicationServerPorts = session.getApplicationServerPorts();
     PortsSpec devicePorts = session.getDevicePorts();
 
-    // Check if already exists
-    Optional<QosSession> actual = checkExistingSessions(deviceIpv4Addr, applicationServerIpv4Addr,
-        devicePorts, applicationServerPorts);
-    if (actual.isPresent()) {
-      QosSession s = actual.get();
-      Instant expirationTime = Instant.ofEpochSecond(s.getExpiresAt());
-      String sessionId = qodConfig.isQosMaskSensibleData() ? maskString(s.getSessionId().toString()) : s.getSessionId().toString();
-      throw new QodApiException(HttpStatus.CONFLICT, "Found session " + sessionId + " already active until " + expirationTime);
-    }
-    // Check if asId.Ipv4Addr could be in private network
+    /* Check if a session already exists for the requested device */
+    checkExistingSessions(deviceIpv4Addr, applicationServerIpv4Addr, devicePorts, applicationServerPorts);
+
+    /* Check if the requested profile is available */
+    checkQosProfile(session.getDuration(), supportedQosProfile.name());
+
+    /* Check if asId.Ipv4Addr could be in private network */
     for (String privateNetwork : PRIVATE_NETWORKS) {
       IPAddressString pn = new IPAddressString(privateNetwork);
       if (pn.contains(new IPAddressString(applicationServerIpv4Addr))) {
@@ -268,27 +301,27 @@ public class SessionService {
     String qosReference = getReference(supportedQosProfile);
 
     if (!isPortsSpecNotDefined(applicationServerPorts)) {
-      // Validate port ranges generally beside the check in checkExistingSessions
+      /* Validate port ranges generally beside the check in checkExistingSessions */
       checkPortRange(applicationServerPorts);
-      // AS port present. Append it to IP
+      /* AS port present. Append it to IP */
       applicationServerIpv4Addr += " " + convertPorts(applicationServerPorts);
     }
     if (!isPortsSpecNotDefined(devicePorts)) {
-      // Validate port ranges generally beside the check in checkExistingSessions
+      /* Validate port ranges generally beside the check in checkExistingSessions */
       checkPortRange(devicePorts);
-      // UE port present. Append it to IP
+      /* UE port present. Append it to IP */
       deviceIpv4Addr += " " + convertPorts(devicePorts);
     }
 
-    // UUID for session
+    /* UUID for session */
     UUID uuid = UUID.randomUUID();
 
-    // Time
+    /* Time */
     long now = Instant.now().getEpochSecond();
     int duration = session.getDuration();
     long expiresAt = now + duration;
 
-    // check if requested booking is available and book it
+    /* check if requested booking is available and book it */
     final UUID bookkeeperId = qodConfig.isQosAvailabilityEnabled() ? createBooking(uuid, now, expiresAt, session) : null;
     FlowInfo flowInfo = createFlowInfo(deviceIpv4Addr, applicationServerIpv4Addr, flowId);
     AsSessionWithQoSSubscription qosSubscription = createQosSubscription(
@@ -307,6 +340,9 @@ public class SessionService {
       ProblemDetails errorResponse = Util.extractProblemDetails(e);
       String errorMessage = errorResponse.getDetail() == null ? errorResponse.getCause() : errorResponse.getDetail();
       int httpStatusCode = e.getStatusCode().value();
+      if (errorResponse.getDetail().contains("Permanent Failures")) {
+        errorMessage = "Probably unknown IPv4 address for UE";
+      }
       throw new QodApiException(HttpStatus.valueOf(httpStatusCode),
           "NEF/SCEF returned error " + httpStatusCode + " while creating a subscription on NEF/SCEF: " + errorMessage);
     }
@@ -319,13 +355,31 @@ public class SessionService {
 
     SessionInfo ret = sessionModelMapper.map(qosSession);
 
-    // Messages are only present in response but not in repository
+    /* Messages are only present in response but not in repository */
     ret.setMessages(messages);
     return ret;
   }
 
+  private void checkQosProfile(int duration, String qosProfileName) {
+    QosProfile qosProfile = qosProfileService.getQosProfile(qosProfileName);
+    if (qosProfile.getStatus() != QosProfileStatusEnum.ACTIVE) {
+      throw new QodApiException(HttpStatus.BAD_REQUEST, "Requested QoS profile currently unavailable");
+    }
+
+    long minDuration = retrieveDurationInSeconds(qosProfile.getMinDuration());
+    long maxDuration = retrieveDurationInSeconds(qosProfile.getMaxDuration());
+
+    if (duration < minDuration || maxDuration < duration) {
+      throw new QodApiException(HttpStatus.BAD_REQUEST,
+          "The requested duration is out of the allowed range for the specific QoS profile: " + qosProfileName,
+          ErrorCode.OUT_OF_RANGE);
+    }
+  }
+
   /**
    * Finds existing session by id.
+   *
+   * @param sessionId the requested session-id.
    */
   public SessionInfo getSession(@NotNull UUID sessionId) {
     return storage.getSession(sessionId).map(sessionModelMapper::map)
@@ -333,9 +387,90 @@ public class SessionService {
   }
 
   /**
+   * Deletes the session by its sessionId and notifies with the given {@link SessionInfo}.
+   *
+   * @param sessionId  the session ID
+   * @param statusInfo the {@link StatusInfo}
+   * @return {@link SessionInfo}
+   */
+  public SessionInfo deleteAndNotify(UUID sessionId, StatusInfo statusInfo) {
+    SessionInfo sessionInfo = deleteSessionById(sessionId);
+    if (statusInfo == StatusInfo.DELETE_REQUESTED) {
+      handleRequestedDelete(statusInfo, sessionInfo);
+    } else {
+      sessionInfo.setQosStatus(QosStatus.UNAVAILABLE);
+      eventHubService.sendEvent(sessionInfo, statusInfo);
+    }
+    return sessionInfo;
+  }
+
+  private void handleRequestedDelete(StatusInfo statusInfo, SessionInfo sessionInfo) {
+    if (sessionInfo.getQosStatus() == QosStatus.AVAILABLE) {
+      sessionInfo.setQosStatus(QosStatus.UNAVAILABLE);
+      eventHubService.sendEvent(sessionInfo, statusInfo);
+    }
+  }
+
+  /**
+   * Extends the duration of a Quality of Service (QoS) session identified by the given session ID.
+   *
+   * @param sessionId          The unique identifier of the QoS session to be extended. Must not be null.
+   * @param additionalDuration The additional duration (in seconds) by which the QoS session is to be extended. Must not be null.
+   * @return A {@link SessionInfo} object representing the extended QoS session.
+   * @throws QodApiException If the QoS session with the specified session ID is not found. The exception includes a 404 NOT FOUND HTTP
+   *                         status and an error message.
+   */
+  public SessionInfo extendQosSession(@NotNull UUID sessionId, @NotNull Integer additionalDuration) {
+    QosSession qosSession = storage.getSession(sessionId)
+        .orElseThrow(() -> new QodApiException(HttpStatus.NOT_FOUND, getSessionNotFoundMessage(sessionId)));
+
+    if (qosSession.getQosStatus() != QosStatus.AVAILABLE) {
+      throw new QodApiException(HttpStatus.FORBIDDEN,
+          "The session cannot be extended. Only active sessions with status 'AVAILABLE' can be extended.");
+    }
+
+    // ExpiredSessionMonitor -> check session handling in case of session will be expired next
+    if (qosSession.getExpirationLockUntil() > 0) {
+      throw new QodApiException(HttpStatus.NOT_FOUND,
+          "The Quality of Service (QoD) session has reached its expiration, and the deletion process is running.");
+    }
+
+    log.info("The current duration value of the session is: <{}>", qosSession.getDuration());
+    log.info("The requested session duration extension value is: <{}>", additionalDuration);
+
+    // check if the QoS Profile allows the duration extension
+    checkQosProfile(qosSession.getDuration() + additionalDuration, qosSession.getQosProfile());
+
+    // Calculate the new duration, remaining duration and new expiresAt
+    var now = Instant.now().getEpochSecond();
+    var oldExpiredAt = qosSession.getExpiresAt();
+    var remainingDuration = oldExpiredAt - now;
+    var oldDuration = qosSession.getDuration();
+    var newDuration = remainingDuration + additionalDuration;
+    var newExpiresAt = now + newDuration;
+
+    // Ensure the new duration does not exceed the maximum seconds per day
+    if (newDuration > SECONDS_PER_DAY) {
+      newDuration = SECONDS_PER_DAY;
+      newExpiresAt = now + SECONDS_PER_DAY;
+      log.info("The maximum extension of the duration has been exceeded, the limited maximum number of seconds per day <{}> will be used",
+          SECONDS_PER_DAY);
+    }
+
+    log.info("Extended QoS session duration from {} to {} seconds.", oldDuration, newDuration);
+    qosSession.setDuration((int) newDuration);
+    qosSession.setExpiresAt(newExpiresAt);
+
+    log.info("Save extended QoS session {}", qosSession);
+    // Save the extended QoS session in storage
+    qosSession = storage.saveSession(qosSession);
+    return sessionModelMapper.map(qosSession);
+  }
+
+  /**
    * Finds & removes session from the database.
    */
-  public SessionInfo deleteSession(@NotNull UUID sessionId) {
+  private SessionInfo deleteSessionById(@NotNull UUID sessionId) {
     QosSession qosSession = storage.getSession(sessionId)
         .orElseThrow(() -> new QodApiException(HttpStatus.NOT_FOUND, getSessionNotFoundMessage(sessionId)));
 
@@ -373,49 +508,6 @@ public class SessionService {
         throw new QodApiException(HttpStatus.INTERNAL_SERVER_ERROR, errorMessage);
       }
     }
-    return sessionModelMapper.map(qosSession);
-  }
-
-  /**
-   * Extends the duration of a Quality of Service (QoS) session identified by the given session ID.
-   *
-   * @param sessionId          The unique identifier of the QoS session to be extended. Must not be null.
-   * @param additionalDuration The additional duration (in seconds) by which the QoS session is to be extended. Must not be null.
-   * @return A {@link SessionInfo} object representing the extended QoS session.
-   * @throws QodApiException If the QoS session with the specified session ID is not found. The exception includes a 404 NOT FOUND HTTP
-   *                         status and an error message.
-   */
-  public SessionInfo extendQosSession(@NotNull UUID sessionId, @NotNull Integer additionalDuration) {
-    QosSession qosSession = storage.getSession(sessionId)
-        .orElseThrow(() -> new QodApiException(HttpStatus.NOT_FOUND, getSessionNotFoundMessage(sessionId)));
-
-    // ExpiredSessionMonitor -> check session handling in case of session will be expired next
-    if (qosSession.getExpirationLockUntil() > 0) {
-      throw new QodApiException(HttpStatus.NOT_FOUND,
-          "The Quality of Service (QoD) session has reached its expiration, and the deletion process is running.");
-    }
-
-    // Calculate the new duration and expiresAt params by adding the additional duration
-    var oldDuration = qosSession.getDuration();
-    var oldStartedAt = qosSession.getStartedAt();
-    var newDuration = oldDuration + additionalDuration;
-    var newExpiresAt = oldStartedAt + oldDuration + additionalDuration;
-
-    // Ensure the new duration does not exceed the maximum seconds per day
-    if (newDuration > SECONDS_PER_DAY) {
-      newDuration = SECONDS_PER_DAY;
-      newExpiresAt = oldStartedAt + SECONDS_PER_DAY;
-      log.info("The maximum extension of the duration has been exceeded, the limited maximum number of seconds per day <{}> will be used",
-          SECONDS_PER_DAY);
-    }
-
-    log.info("Extended QoS session duration from {} to {} seconds.", oldDuration, newDuration);
-    qosSession.setDuration(newDuration);
-    qosSession.setExpiresAt(newExpiresAt);
-
-    log.info("Save extended QoS session {}", qosSession);
-    // Save the extended QoS session in storage
-    qosSession = storage.saveSession(qosSession);
     return sessionModelMapper.map(qosSession);
   }
 
@@ -484,32 +576,39 @@ public class SessionService {
   }
 
   /**
-   * Looks for existing sessions with the same ipv4 address, if existing network or ports intersect with the given parameters, returns
-   * non-empty QosSession.
+   * Looks for existing sessions with the same ipv4 address, if existing network or ports intersect with the given parameters.
    *
-   * @param ueAddr  the user equipment address
-   * @param asAddr  the application server address
-   * @param uePorts the user equipment ports
-   * @param asPorts the application server ports
-   * @return the {@link QosSession} as an {@link Optional}
+   * @param deviceIpv4             the user equipment address
+   * @param applicationServerIpv4  the application server address
+   * @param devicePorts            the user equipment ports
+   * @param applicationServerPorts the application server ports
    */
-  private Optional<QosSession> checkExistingSessions(String ueAddr, String asAddr, PortsSpec uePorts, PortsSpec asPorts) {
+  private void checkExistingSessions(String deviceIpv4,
+      String applicationServerIpv4,
+      PortsSpec devicePorts,
+      PortsSpec applicationServerPorts) {
 
-    List<QosSession> qosSessions = storage.findByDeviceIpv4addr(ueAddr);
+    List<QosSession> qosSessions = storage.findByDeviceIpv4addr(deviceIpv4);
 
-    return qosSessions.stream()
-        .filter(qosSession -> checkNetworkIntersection(asAddr, qosSession.getApplicationServer().getIpv4Address()))
+    Optional<QosSession> sessionOptional = qosSessions.stream()
+        .filter(qosSession -> checkNetworkIntersection(applicationServerIpv4, qosSession.getApplicationServer().getIpv4Address()))
         .filter(qosSession -> checkPortIntersection(
-            isPortsSpecNotDefined(uePorts)
+            isPortsSpecNotDefined(devicePorts)
                 ? new PortsSpec().ranges(Collections.singletonList(new PortsSpecRangesInner().from(0).to(65535)))
-                : uePorts, (isPortsSpecNotDefined(qosSession.getDevicePorts())) ? new PortsSpec().ranges(
+                : devicePorts, (isPortsSpecNotDefined(qosSession.getDevicePorts())) ? new PortsSpec().ranges(
                 Collections.singletonList(new PortsSpecRangesInner().from(0).to(65535))) : qosSession.getDevicePorts()))
         .filter(qosSession -> checkPortIntersection(
-            isPortsSpecNotDefined(asPorts)
+            isPortsSpecNotDefined(applicationServerPorts)
                 ? new PortsSpec().ranges(Collections.singletonList(new PortsSpecRangesInner().from(0).to(65535)))
-                : asPorts, (isPortsSpecNotDefined(qosSession.getApplicationServerPorts())) ? new PortsSpec().ranges(
+                : applicationServerPorts, (isPortsSpecNotDefined(qosSession.getApplicationServerPorts())) ? new PortsSpec().ranges(
                 Collections.singletonList(new PortsSpecRangesInner().from(0).to(65535))) : qosSession.getApplicationServerPorts()))
         .findFirst();
+    if (sessionOptional.isPresent()) {
+      QosSession s = sessionOptional.get();
+      Instant expirationTime = Instant.ofEpochSecond(s.getExpiresAt());
+      String sessionId = qodConfig.isQosMaskSensibleData() ? maskString(s.getSessionId().toString()) : s.getSessionId().toString();
+      throw new QodApiException(HttpStatus.CONFLICT, "Found session " + sessionId + " already active until " + expirationTime);
+    }
   }
 
   /**
@@ -556,4 +655,5 @@ public class SessionService {
         .notificationDestination(networkConfig.getNetworkNotificationsDestination()).requestTestNotification(true)
         .supportedFeatures(supportedFeatures);
   }
+
 }

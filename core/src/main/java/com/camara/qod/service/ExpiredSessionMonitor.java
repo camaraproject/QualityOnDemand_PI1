@@ -23,7 +23,7 @@
 
 package com.camara.qod.service;
 
-import com.camara.qod.api.model.SessionInfo;
+import com.camara.qod.api.model.QosStatus;
 import com.camara.qod.api.model.StatusInfo;
 import com.camara.qod.config.QodConfig;
 import com.camara.qod.model.QosSession;
@@ -49,7 +49,6 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class ExpiredSessionMonitor {
 
-  private final EventHubService eventHubService;
   private final SessionService sessionService;
   private final QodConfig qodConfig;
   private final StorageService storage;
@@ -112,8 +111,17 @@ public class ExpiredSessionMonitor {
     @Override
     public void run() {
       log.info("QoD session {} expired, deleting...", sessionId);
-      SessionInfo sessionInfo = sessionService.deleteSession(sessionId);
-      eventHubService.sendEvent(sessionInfo, StatusInfo.DURATION_EXPIRED);
+      Optional<QosSession> session = storage.getSession(sessionId);
+      StatusInfo statusInfo = determineStatusInfo(session);
+      sessionService.deleteAndNotify(sessionId, statusInfo);
+    }
+
+    private static StatusInfo determineStatusInfo(Optional<QosSession> session) {
+      StatusInfo statusInfo = StatusInfo.DURATION_EXPIRED;
+      if (session.isPresent() && session.get().getQosStatus() == QosStatus.UNAVAILABLE) {
+        statusInfo = StatusInfo.NETWORK_TERMINATED;
+      }
+      return statusInfo;
     }
   }
 }

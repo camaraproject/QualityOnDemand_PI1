@@ -28,13 +28,12 @@ import static com.camara.qod.exception.ErrorCode.NOT_ALLOWED;
 import static com.camara.qod.util.SessionsTestData.SESSION_URI;
 import static com.camara.qod.util.SessionsTestData.SESSION_UUID;
 import static com.camara.qod.util.SessionsTestData.SESSION_XML_REQUEST;
+import static com.camara.qod.util.SessionsTestData.createDefaultTestSessionWithUnknownIpv4;
 import static com.camara.qod.util.SessionsTestData.createSessionInfoSample;
 import static com.camara.qod.util.SessionsTestData.createTestSession;
-import static com.camara.qod.util.SessionsTestData.createTestSessionWithInvalidAppServerNetwork;
 import static com.camara.qod.util.SessionsTestData.createValidTestSession;
 import static com.camara.qod.util.TestData.getAsJsonFormat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -62,7 +61,6 @@ import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
     SessionsController.class,
     ExceptionHandlerAdvice.class,
     SecurityConfig.class
-
 })
 @ContextConfiguration(classes = SessionsApiController.class)
 class SessionsControllerTest {
@@ -109,20 +107,6 @@ class SessionsControllerTest {
         .andExpect(jsonPath("$.message")
             .value("A network segment for ueAddr is not allowed in the current "
                 + "configuration: 198.51.100.1 is not allowed, but 123.45.678.9 is allowed."));
-  }
-
-  @Test
-  void testCreateSession_BadRequest_InvalidIpv4_400() throws Exception {
-    doCallRealMethod().when(validationService).validate(any());
-    mockMvc.perform(MockMvcRequestBuilders
-            .post(SESSION_URI)
-            .accept(MediaType.APPLICATION_JSON_VALUE)
-            .contentType(MediaType.APPLICATION_JSON_VALUE)
-            .content(getAsJsonFormat(createTestSessionWithInvalidAppServerNetwork())))
-        .andDo(MockMvcResultHandlers.print())
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.message")
-            .value("Network specification for device.ipv4Address.publicAddress not valid 172.24.11.4/18"));
   }
 
   @Test
@@ -259,6 +243,23 @@ class SessionsControllerTest {
   }
 
   @Test
+  void testCreateSession_InternalServerError_500_PermanentFailures() throws Exception {
+    when(sessionService.createSession(any())).thenThrow(
+          new QodApiException(HttpStatus.INTERNAL_SERVER_ERROR,
+              "NEF/SCEF returned error 500 while creating a subscription on NEF/SCEF: Probably unknown IPv4 address for UE"));
+    mockMvc.perform(MockMvcRequestBuilders
+              .post(SESSION_URI)
+              .accept(MediaType.APPLICATION_JSON_VALUE)
+              .contentType(MediaType.APPLICATION_JSON_VALUE)
+              .content(getAsJsonFormat(createDefaultTestSessionWithUnknownIpv4())))
+          .andDo(MockMvcResultHandlers.print())
+          .andExpect(status().isInternalServerError())
+          .andExpect(jsonPath("$.message")
+              .value(
+                  "NEF/SCEF returned error 500 while creating a subscription on NEF/SCEF: Probably unknown IPv4 address for UE"));
+  }
+
+  @Test
   void testCreateSession_ServiceUnavailable_503() throws Exception {
     when(sessionService.createSession(any())).thenThrow(
         new QodApiException(HttpStatus.SERVICE_UNAVAILABLE,
@@ -353,7 +354,7 @@ class SessionsControllerTest {
 
   @Test
   void testDeleteSession_Ok_204() throws Exception {
-    when(sessionService.deleteSession(any())).thenReturn(createSessionInfoSample());
+    when(sessionService.deleteAndNotify(any(), any())).thenReturn(createSessionInfoSample());
     mockMvc.perform(MockMvcRequestBuilders
             .delete(SESSION_URI + "/" + SESSION_UUID)
             .accept(MediaType.APPLICATION_JSON_VALUE)
@@ -364,7 +365,7 @@ class SessionsControllerTest {
 
   @Test
   void testDeleteSession_NotFound_404() throws Exception {
-    when(sessionService.deleteSession(any())).thenThrow(
+    when(sessionService.deleteAndNotify(any(), any())).thenThrow(
         new QodApiException(HttpStatus.NOT_FOUND,
             "QoD session not found for session ID: 963ab9f5-26e8-48b9-a56e-52ecdeaa9172"));
     mockMvc.perform(MockMvcRequestBuilders
@@ -379,7 +380,7 @@ class SessionsControllerTest {
 
   @Test
   void testDeleteSession_ServiceUnavailable_503() throws Exception {
-    when(sessionService.deleteSession(any())).thenThrow(
+    when(sessionService.deleteAndNotify(any(), any())).thenThrow(
         new QodApiException(HttpStatus.SERVICE_UNAVAILABLE,
             "The service is currently not available"));
     mockMvc.perform(MockMvcRequestBuilders

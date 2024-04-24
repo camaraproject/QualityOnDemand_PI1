@@ -23,8 +23,10 @@
 
 package com.camara.qod.service;
 
+import com.camara.qod.api.model.Duration;
 import com.camara.qod.api.model.QosProfile;
 import com.camara.qod.api.model.QosProfileStatusEnum;
+import com.camara.qod.api.model.TimeUnitEnum;
 import com.camara.qod.entity.QosProfileRedisEntity;
 import com.camara.qod.exception.QodApiException;
 import com.camara.qod.mapping.QosProfileMapper;
@@ -50,17 +52,33 @@ public class RedisQosProfileService implements QosProfileService {
   private final QosProfileMapper qosProfileMapper;
 
   /**
-   * Loads initial static data into Redis DB.
+   * Loads initial static data into Redis DB if not already present.
    */
   @PostConstruct
   public void initData() {
-    qosProfilesRedisRepository.deleteAll();
-    QosProfileRedisEntity profileE = createStaticActiveQosProfile("E");
-    QosProfileRedisEntity profileS = createStaticActiveQosProfile("S");
-    QosProfileRedisEntity profileM = createStaticActiveQosProfile("M");
-    QosProfileRedisEntity profileL = createStaticActiveQosProfile("L");
-    List<QosProfileRedisEntity> profiles = List.of(profileE, profileS, profileM, profileL);
-    qosProfilesRedisRepository.saveAll(profiles);
+    createAndSaveIfNotExists("QOS_E", createQosProfileDuration(10, TimeUnitEnum.SECONDS),
+        createQosProfileDuration(30, TimeUnitEnum.SECONDS));
+    createAndSaveIfNotExists("QOS_S", createQosProfileDuration(10, TimeUnitEnum.SECONDS),
+        createQosProfileDuration(5, TimeUnitEnum.MINUTES));
+    createAndSaveIfNotExists("QOS_M", createQosProfileDuration(10, TimeUnitEnum.SECONDS),
+        createQosProfileDuration(5, TimeUnitEnum.HOURS));
+    createAndSaveIfNotExists("QOS_L", createQosProfileDuration(10, TimeUnitEnum.SECONDS),
+        createQosProfileDuration(12, TimeUnitEnum.HOURS));
+  }
+
+  /**
+   * Creates and saves a QoS profile if it does not already exist.
+   *
+   * @param name        The name of the QoS profile.
+   * @param minDuration The minimum duration of the QoS profile.
+   * @param maxDuration The maximum duration of the QoS profile.
+   */
+  private void createAndSaveIfNotExists(String name, Duration minDuration, Duration maxDuration) {
+    if (qosProfilesRedisRepository.findByName(name).isEmpty()) {
+      QosProfileRedisEntity profile = createStaticActiveQosProfile(name, minDuration, maxDuration);
+      qosProfilesRedisRepository.save(profile);
+      log.info("QoS profile '{}' created and saved.", name);
+    }
   }
 
   /**
@@ -113,11 +131,23 @@ public class RedisQosProfileService implements QosProfileService {
         .orElseThrow(() -> new QodApiException(HttpStatus.NOT_FOUND, "QosProfile Id does not exist"));
   }
 
-  private static QosProfileRedisEntity createStaticActiveQosProfile(String profileIdentifier) {
+  private Duration createQosProfileDuration(int time, TimeUnitEnum unit) {
+    Duration qosMinDuration = new Duration();
+    qosMinDuration.setValue(time);
+    qosMinDuration.setUnit(unit);
+    return qosMinDuration;
+  }
+
+  private static QosProfileRedisEntity createStaticActiveQosProfile(
+      String profileIdentifier,
+      Duration profileMinDuration,
+      Duration profileMaxDuration) {
     return QosProfileRedisEntity.builder()
-        .name("QOS_" + profileIdentifier)
+        .name(profileIdentifier)
         .description("The QOS profile " + profileIdentifier)
         .status(QosProfileStatusEnum.ACTIVE)
+        .minDuration(profileMinDuration)
+        .maxDuration(profileMaxDuration)
         .build();
   }
 

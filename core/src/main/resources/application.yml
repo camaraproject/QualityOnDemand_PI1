@@ -5,7 +5,7 @@ server:
 # T8 reference point, SCEF EP, see http://www.3gpp.org/ftp/Specs/archive/29_series/29.122/
 network:
   server:
-    apiroot: https://example.com
+    apiroot: http://localhost:8081
     scsasid: scs
     flowid:
       qos-e: 3
@@ -43,7 +43,9 @@ qod:
     horizon: false
   cloud-event:
     source:
-      url: http://localhost/sessions
+      url: http://localhost:9091/qod/v0/sessions
+  deletion:
+    delay: 360
   qos:
     references:
       qos-e: qod_1
@@ -54,6 +56,10 @@ qod:
     time-before-handling: 20
     trigger-interval: 10
     lock-time: 2
+  notifications:
+    ip-filter:
+      enabled: ${IP_FILTER_ENABLED:false}
+      allowed-ipv4-addresses: ${ALLOWED_IPV4_ADDRESSES:127.0.0.1}
   mask-sensible-data: true # if set to true, sensible data is masked in response body
   allow-multiple-deviceaddr: true # if set to true, network segments are allowed for ueAddr
   availability:
@@ -74,8 +80,6 @@ management:
     health:
       probes:
         enabled: true
-      show-details: always
-    info:
       enabled: true
 
 spring:

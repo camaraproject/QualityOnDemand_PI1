@@ -24,7 +24,11 @@
 
 package com.camara.qod.controller;
 
+import static com.camara.qod.util.QosProfilesTestData.getQosProfilesRedisEntityTestData;
+import static com.camara.qod.util.QosProfilesTestData.getSingleQosProfileRedisEntity;
 import static com.camara.qod.util.SessionsTestData.DURATION_DEFAULT;
+import static com.camara.qod.util.SessionsTestData.TEST_INVALID_AS_IPV4_ADDRESS;
+import static com.camara.qod.util.SessionsTestData.createDefaultTestSessionWithUnknownIpv4;
 import static com.camara.qod.util.SessionsTestData.createNefSubscriptionResponse;
 import static com.camara.qod.util.SessionsTestData.createNefSubscriptionResponseWithoutSubscriptionId;
 import static com.camara.qod.util.SessionsTestData.createTestSession;
@@ -40,6 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
@@ -52,18 +57,24 @@ import com.camara.network.api.AsSessionWithQoSApiSubscriptionLevelPostOperationA
 import com.camara.network.api.model.ProblemDetails;
 import com.camara.qod.api.SessionsApi;
 import com.camara.qod.api.model.CreateSession;
+import com.camara.qod.api.model.Duration;
 import com.camara.qod.api.model.ExtendSessionDuration;
 import com.camara.qod.api.model.Message;
 import com.camara.qod.api.model.QosProfile;
+import com.camara.qod.api.model.QosProfileStatusEnum;
+import com.camara.qod.api.model.QosStatus;
 import com.camara.qod.api.model.SessionInfo;
+import com.camara.qod.api.model.TimeUnitEnum;
 import com.camara.qod.config.NetworkConfig;
 import com.camara.qod.config.QodConfig;
+import com.camara.qod.entity.QosProfileRedisEntity;
 import com.camara.qod.exception.QodApiException;
 import com.camara.qod.feign.AvailabilityServiceClient;
 import com.camara.qod.model.AvailabilityRequest;
 import com.camara.qod.model.QosSession;
 import com.camara.qod.model.SupportedQosProfiles;
 import com.camara.qod.repository.QodSessionRedisRepository;
+import com.camara.qod.repository.QosProfilesRedisRepository;
 import com.camara.qod.service.ExpiredSessionMonitor;
 import com.camara.qod.service.StorageService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -71,6 +82,7 @@ import feign.FeignException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.SneakyThrows;
@@ -122,6 +134,8 @@ class SessionsControllerIntegrationTest {
   @Autowired
   QodSessionRedisRepository qosSessionRedisRepository;
   @Autowired
+  QosProfilesRedisRepository qosProfilesRedisRepository;
+  @Autowired
   ExpiredSessionMonitor expiredSessionMonitor;
   @Autowired
   StorageService storage;
@@ -162,6 +176,9 @@ class SessionsControllerIntegrationTest {
 
     /* Setup NEF-mocks */
     when(postApi.scsAsIdSubscriptionsPost(anyString(), any())).thenReturn(createNefSubscriptionResponse());
+    qosProfilesRedisRepository.deleteAll();
+    qosProfilesRedisRepository.saveAll(getQosProfilesRedisEntityTestData());
+
   }
 
   /**
@@ -241,11 +258,12 @@ class SessionsControllerIntegrationTest {
    * Networks need to be defined with the start address (e.g. 200.24.24.0/24 and not 200.24.24.2/24).
    */
   @Test
-  void testCreateSession_BadRequest_InvalidIpv4_400() {
+  void testCreateSession_BadRequest_Appserver_InvalidIpv4_400() {
     CreateSession session = createTestSessionWithInvalidAppServerNetwork();
     QodApiException exception = assertThrows(QodApiException.class, () -> api.createSession(session));
-    assertTrue(exception.getMessage().contains("Network specification for device.ipv4Address.publicAddress not valid 172.24.11.4/18"));
-    assertSame(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
+    assertEquals("Network specification for applicationServer.ipv4Address not valid: <" + TEST_INVALID_AS_IPV4_ADDRESS + ">",
+        exception.getMessage());
+    assertEquals(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
   }
 
   /**
@@ -279,6 +297,82 @@ class SessionsControllerIntegrationTest {
     QodApiException exception = assertThrows(QodApiException.class, () -> api.createSession(session));
     assertTrue(exception.getMessage().contains("QoS profile <QOS_L> unknown or disabled"));
     assertSame(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
+  }
+
+  /**
+   * Creates a session with an inactive QoS profile.
+   */
+  @Test
+  void testCreateSession_BadRequest_InactiveQosProfile_400() {
+    SupportedQosProfiles profile = SupportedQosProfiles.QOS_E;
+    QosProfileRedisEntity qosProfile = qosProfilesRedisRepository.findByName(profile.name())
+        .orElse(getSingleQosProfileRedisEntity(profile.name()));
+    qosProfile.setStatus(QosProfileStatusEnum.INACTIVE);
+    qosProfilesRedisRepository.save(qosProfile);
+
+    CreateSession session = createTestSession(profile);
+    QodApiException exception = assertThrows(QodApiException.class, () -> api.createSession(session));
+    assertSame("Requested QoS profile currently unavailable", exception.getMessage());
+    assertSame(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
+  }
+
+  /**
+   * Creates a session with a duration greater than the max one for QoS profile.
+   */
+  @Test
+  void testCreateSession_BadRequest_DurationOutOfRangeForQosProfile_Max_400() {
+    SupportedQosProfiles profile = SupportedQosProfiles.QOS_E;
+    QosProfileRedisEntity qosProfile = qosProfilesRedisRepository.findByName(profile.name())
+        .orElse(getSingleQosProfileRedisEntity(profile.name()));
+    qosProfile.setMaxDuration(new Duration().unit(TimeUnitEnum.SECONDS).value(DURATION_DEFAULT - 1));
+    qosProfilesRedisRepository.save(qosProfile);
+
+    CreateSession session = createTestSession(profile);
+    QodApiException exception = assertThrows(QodApiException.class, () -> api.createSession(session));
+    assertEquals("The requested duration is out of the allowed range for the specific QoS profile: QOS_E", exception.getMessage());
+    assertSame(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
+  }
+
+  /**
+   * Creates a session with a duration shorter than the min one for QoS profile.
+   */
+  @Test
+  void testCreateSession_BadRequest_DurationOutOfRangeForQosProfile_Min_400() {
+    SupportedQosProfiles profile = SupportedQosProfiles.QOS_E;
+    QosProfileRedisEntity qosProfile = qosProfilesRedisRepository.findByName(profile.name())
+        .orElse(getSingleQosProfileRedisEntity(profile.name()));
+    qosProfile.setMinDuration(new Duration().unit(TimeUnitEnum.SECONDS).value(DURATION_DEFAULT + 1));
+    qosProfilesRedisRepository.save(qosProfile);
+
+    CreateSession session = createTestSession(profile);
+    QodApiException exception = assertThrows(QodApiException.class, () -> api.createSession(session));
+    assertEquals("The requested duration is out of the allowed range for the specific QoS profile: QOS_E", exception.getMessage());
+    assertSame(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
+  }
+
+  /**
+   * Creates a session with a QoS profile duration in a different time units.
+   */
+  @ParameterizedTest
+  @EnumSource(TimeUnitEnum.class)
+  void testCreateSession_DifferentDurationTimeUnits_200(TimeUnitEnum unit) {
+    SupportedQosProfiles profile = SupportedQosProfiles.QOS_E;
+    QosProfileRedisEntity qosProfile = qosProfilesRedisRepository.findByName(profile.name())
+        .orElse(getSingleQosProfileRedisEntity(profile.name()));
+    qosProfile.setMaxDuration(new Duration().unit(unit).value(DURATION_DEFAULT * 1_000_000_000));
+    qosProfilesRedisRepository.save(qosProfile);
+
+    if (unit != TimeUnitEnum.NANOSECONDS) {
+      CreateSession session = createTestSession(profile);
+      ResponseEntity<SessionInfo> response = assertDoesNotThrow(() -> api.createSession(session));
+      assertSame(HttpStatus.CREATED, response.getStatusCode());
+
+    } else {
+      CreateSession session = createTestSession(profile);
+      QodApiException exception = assertThrows(QodApiException.class, () -> api.createSession(session));
+      assertEquals("The requested duration is out of the allowed range for the specific QoS profile: QOS_E", exception.getMessage());
+      assertSame(HttpStatus.BAD_REQUEST, exception.getHttpStatus());
+    }
   }
 
   @Test
@@ -373,6 +467,30 @@ class SessionsControllerIntegrationTest {
   }
 
   @Test
+  void testCreateSession_InternalServerErrorByNef_500_PermanentFailures() {
+    ProblemDetails problemDetails = new ProblemDetails();
+    problemDetails.setDetail("Permanent Failures");
+    problemDetails.setStatus(500);
+    String json;
+    try {
+      json = objectMapper.writeValueAsString(problemDetails);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Invalid problem details");
+    }
+    byte[] jsonAsBytes = json.getBytes(StandardCharsets.UTF_8);
+
+    HttpServerErrorException httpServerErrorException = new HttpServerErrorException(HttpStatusCode.valueOf(500), "Permanent Failures",
+        jsonAsBytes, StandardCharsets.UTF_8);
+
+    doThrow(httpServerErrorException).when(postApi).scsAsIdSubscriptionsPost(anyString(), any());
+    CreateSession validTestSession = createDefaultTestSessionWithUnknownIpv4();
+    QodApiException exception = assertThrows(QodApiException.class, () -> api.createSession(validTestSession));
+    assertEquals("NEF/SCEF returned error 500 while creating a subscription on NEF/SCEF: Probably unknown IPv4 address for UE",
+        exception.getMessage());
+    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, exception.getHttpStatus());
+  }
+
+  @Test
   void testCreateSession_ServiceUnavailable_Bookkeeper_503() {
     doThrow(FeignException.ServiceUnavailable.class).when(availabilityServiceClient).checkSession(any(AvailabilityRequest.class));
     if (availabilityEnabled) {
@@ -396,12 +514,14 @@ class SessionsControllerIntegrationTest {
     assertEquals(HttpStatus.NOT_FOUND, exception.getHttpStatus());
   }
 
-  @Test
-  void testGetSession_NotFound_SessionExpired_404() {
+  @ParameterizedTest
+  @EnumSource(names = {"AVAILABLE", "UNAVAILABLE"})
+  void testGetSession_NotFound_SessionExpired_404(QosStatus qosStatus) {
     UUID sessionId = createSession(createValidTestSession());
     Optional<QosSession> sessionOptional = storage.getSession(sessionId);
     assertTrue(sessionOptional.isPresent());
     QosSession session = sessionOptional.get();
+    session.setQosStatus(qosStatus);
     session.setExpiresAt(Instant.now().getEpochSecond());
     storage.saveSession(session);
 
@@ -481,7 +601,7 @@ class SessionsControllerIntegrationTest {
    * Creates, get, extend and delete a session.
    */
   @Test
-  void testCreateExtent_CheckAndDeleteSession_Ok() {
+  void testCreateExtend_CheckAndDeleteSession_Ok() {
 
     UUID sessionId = createSession(createValidTestSessionWithGivenDuration(20));
     if (availabilityEnabled) {
@@ -492,13 +612,40 @@ class SessionsControllerIntegrationTest {
       verify(availabilityServiceClient, times(0)).createSession(any());
     }
     assertSame(HttpStatus.OK, api.getSession(sessionId).getStatusCode());
-    assertEquals(20, api.getSession(sessionId).getBody().getDuration());
-    Long initialStartTime = api.getSession(sessionId).getBody().getStartedAt();
+    assertEquals(20, Objects.requireNonNull(api.getSession(sessionId).getBody()).getDuration());
+
+    QosSession entity = storage.getSession(sessionId).orElse(null);
+    assertNotNull(entity);
+    entity.setQosStatus(QosStatus.AVAILABLE);
+    storage.saveSession(entity);
 
     assertSame(HttpStatus.OK, api.extendQosSessionDuration(sessionId, new ExtendSessionDuration(40)).getStatusCode());
-    assertEquals(60, api.getSession(sessionId).getBody().getDuration());
-    Long newExpirationTime = api.getSession(sessionId).getBody().getExpiresAt();
+    assertEquals(60, Objects.requireNonNull(api.getSession(sessionId).getBody()).getDuration());
+
+    Long newExpirationTime = Objects.requireNonNull(api.getSession(sessionId).getBody()).getExpiresAt();
+    Long initialStartTime = Objects.requireNonNull(api.getSession(sessionId).getBody()).getStartedAt();
     assertEquals(60, newExpirationTime - initialStartTime);
+    api.deleteSession(sessionId);
+  }
+
+  @Test
+  void testCreateExtend_CheckAndDeleteSession_InDeletingProcess_404() {
+
+    UUID sessionId = createSession(createValidTestSessionWithGivenDuration(20));
+    assertSame(HttpStatus.OK, api.getSession(sessionId).getStatusCode());
+    assertEquals(20, Objects.requireNonNull(api.getSession(sessionId).getBody()).getDuration());
+    QosSession entity = storage.getSession(sessionId).orElse(null);
+    assertNotNull(entity);
+    entity.setExpirationLockUntil(200);
+    entity.setQosStatus(QosStatus.AVAILABLE);
+    storage.saveSession(entity);
+
+    ExtendSessionDuration extendSessionDuration = new ExtendSessionDuration(40);
+    QodApiException qodApiException = assertThrows(QodApiException.class,
+        () -> api.extendQosSessionDuration(sessionId, extendSessionDuration));
+    assertEquals("The Quality of Service (QoD) session has reached its expiration, and the deletion process is running.",
+        qodApiException.getMessage());
+    assertEquals(HttpStatus.NOT_FOUND, qodApiException.getHttpStatus());
     api.deleteSession(sessionId);
   }
 
@@ -506,7 +653,72 @@ class SessionsControllerIntegrationTest {
    * Creates, get, extend to duration limit and delete a session.
    */
   @Test
-  void testCreateExtentToLimit_CheckAndDeleteSession_Ok() {
+  void testExtendSessionToProfileLimit_CheckAndDeleteSession_400() {
+    // test max duration for all profiles limited to 86400 seconds
+    UUID sessionId = createSession(createValidTestSessionWithGivenDuration(86300));
+    if (availabilityEnabled) {
+      verify(availabilityServiceClient, times(1)).checkSession(any());
+      verify(availabilityServiceClient, times(1)).createSession(any());
+    } else {
+      verify(availabilityServiceClient, times(0)).checkSession(any());
+      verify(availabilityServiceClient, times(0)).createSession(any());
+    }
+    assertSame(HttpStatus.OK, api.getSession(sessionId).getStatusCode());
+    assertEquals(86300, Objects.requireNonNull(api.getSession(sessionId).getBody()).getDuration());
+
+    QosSession entity = storage.getSession(sessionId).orElse(null);
+    assertNotNull(entity);
+    entity.setQosStatus(QosStatus.AVAILABLE);
+    storage.saveSession(entity);
+
+    ExtendSessionDuration extendSessionDuration = new ExtendSessionDuration(600);
+    QodApiException qodApiException = assertThrows(QodApiException.class,
+        () -> api.extendQosSessionDuration(sessionId, extendSessionDuration));
+    assertEquals("The requested duration is out of the allowed range for the specific QoS profile: QOS_E", qodApiException.getMessage());
+    assertEquals(HttpStatus.BAD_REQUEST, qodApiException.getHttpStatus());
+    api.deleteSession(sessionId);
+  }
+
+  @Test
+  void testExtendSessionToSessionLimit_Ok() {
+
+    UUID sessionId = createSession(createValidTestSessionWithGivenDuration(80_000));
+    if (availabilityEnabled) {
+      verify(availabilityServiceClient, times(1)).checkSession(any());
+      verify(availabilityServiceClient, times(1)).createSession(any());
+    } else {
+      verify(availabilityServiceClient, times(0)).checkSession(any());
+      verify(availabilityServiceClient, times(0)).createSession(any());
+    }
+    assertSame(HttpStatus.OK, api.getSession(sessionId).getStatusCode());
+    assertEquals(80_000, Objects.requireNonNull(api.getSession(sessionId).getBody()).getDuration());
+
+    Optional<QosProfileRedisEntity> profileRedis = qosProfilesRedisRepository.findByName("QOS_L");
+    if (profileRedis.isPresent()) {
+      QosProfileRedisEntity entity = profileRedis.get();
+      entity.setMaxDuration(new Duration().value(100_000).unit(TimeUnitEnum.SECONDS));
+      qosProfilesRedisRepository.save(entity);
+    } else {
+      fail();
+    }
+
+    QosSession entity = storage.getSession(sessionId).orElse(null);
+    assertNotNull(entity);
+    entity.setQosStatus(QosStatus.AVAILABLE);
+    entity.setQosProfile("QOS_L");
+    storage.saveSession(entity);
+
+    assertSame(HttpStatus.OK, api.extendQosSessionDuration(sessionId, new ExtendSessionDuration(10_000)).getStatusCode());
+    assertEquals(MAX_VALUE_SECONDS_PER_DAY, Objects.requireNonNull(api.getSession(sessionId).getBody()).getDuration());
+
+    api.deleteSession(sessionId);
+  }
+
+  /**
+   * Creates, get, extend not possible - FORBIDDEN and delete a session.
+   */
+  @Test
+  void testCreateExtendToLimit_CheckAndDeleteSession_Forbidden() {
     // duration is limited to maximum: 86399 (seconds  per day)
     UUID sessionId = createSession(createValidTestSessionWithGivenDuration(86300));
     if (availabilityEnabled) {
@@ -517,13 +729,18 @@ class SessionsControllerIntegrationTest {
       verify(availabilityServiceClient, times(0)).createSession(any());
     }
     assertSame(HttpStatus.OK, api.getSession(sessionId).getStatusCode());
-    assertEquals(86300, api.getSession(sessionId).getBody().getDuration());
-    Long initialStartTime = api.getSession(sessionId).getBody().getStartedAt();
+    assertEquals(86300, Objects.requireNonNull(api.getSession(sessionId).getBody()).getDuration());
 
-    assertSame(HttpStatus.OK, api.extendQosSessionDuration(sessionId, new ExtendSessionDuration(600)).getStatusCode());
-    assertEquals(MAX_VALUE_SECONDS_PER_DAY, api.getSession(sessionId).getBody().getDuration());
-    Long newExpirationTime = api.getSession(sessionId).getBody().getExpiresAt();
-    assertEquals(MAX_VALUE_SECONDS_PER_DAY, newExpirationTime - initialStartTime);
+    QosSession entity = storage.getSession(sessionId).orElse(null);
+    assertNotNull(entity);
+    entity.setQosStatus(QosStatus.UNAVAILABLE);
+    storage.saveSession(entity);
+
+    ExtendSessionDuration extendSessionDuration = new ExtendSessionDuration(600);
+    QodApiException exception = assertThrows(QodApiException.class, () -> api.extendQosSessionDuration(sessionId, extendSessionDuration));
+
+    assertEquals(HttpStatus.FORBIDDEN, exception.getHttpStatus());
+    assertEquals("The session cannot be extended. Only active sessions with status 'AVAILABLE' can be extended.", exception.getMessage());
     api.deleteSession(sessionId);
   }
 
@@ -531,11 +748,10 @@ class SessionsControllerIntegrationTest {
    * Extend a session, expect not found response.
    */
   @Test
-  void testExtentSession_NotFound_404() {
+  void testExtendSession_NotFound_404() {
     var sessionId = UUID.fromString("00000000-0000-0000-0000-000000000000");
     var extendDuration = new ExtendSessionDuration(40);
-    QodApiException exception = assertThrows(QodApiException.class,
-        () -> api.extendQosSessionDuration(sessionId, extendDuration));
+    QodApiException exception = assertThrows(QodApiException.class, () -> api.extendQosSessionDuration(sessionId, extendDuration));
     assertTrue(exception.getMessage().contains("QoD session not found for session ID: 00000000-0000-0000-0000-000000000000"));
     assertEquals(HttpStatus.NOT_FOUND, exception.getHttpStatus());
   }

@@ -23,7 +23,10 @@
 
 package com.camara.qod.config;
 
+import java.util.List;
+import java.util.regex.Pattern;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.ToString;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
@@ -33,12 +36,18 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 @Getter
+@Setter
 @ToString
 public class QodConfig {
 
-  public static final String NETWORK_SEGMENT_REGEX =
-      "^([01]?\\d\\d?|2[0-4]\\d|25[0-5])(?:\\.(?:[01]?\\d\\d?|2[0-4]\\d|25[0-5])){3}(\\/"
-          + "([0-9]|[1-2][0-9]|3[0-2]))$";
+  public static final Pattern IPV4_PATTERN = Pattern.compile(QodConfig.IPV4_REGEX);
+
+  public static final String IPV4_REGEX =
+      "^((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]\\d|\\d)\\.){3}(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]\\d|\\d)(/([0-9]|[1-2][0-9]|3[0-2]))?$";
+
+  public static final String IPV4_WITH_NETWORK_SEGMENT_REGEX =
+      "^((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]\\d|\\d)\\.){3}(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]\\d|\\d)(\\/([0-9]|[1-2][0-9]|3[0-2]))$";
+
   @Value("${qod.qos.references.qos-e}")
   private String qosReferenceQosE;
   @Value("${qod.qos.references.qos-s}")
@@ -61,4 +70,10 @@ public class QodConfig {
   private boolean qosAvailabilityEnabled;
   @Value("${qod.availability.url}")
   private String qosAvailabilityUrl;
+  @Value("${qod.deletion.delay}")
+  private long deletionDelay;
+  @Value("${qod.notifications.ip-filter.allowed-ipv4-addresses}")
+  private List<String> allowedIpv4Addresses;
+  @Value("${qod.notifications.ip-filter.enabled}")
+  private boolean ipFilterEnabled;
 }
