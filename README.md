@@ -137,7 +137,6 @@ skinparam componentStyle rectangle
 - **Swagger Specification:** The API adheres to the provided Swagger specification (https://swagger.io/specification/v2/) to ensure consistency and facilitate client development.
 - **Authentication:** The API utilizes OAuth 2.0 for authentication. Two flows are supported:
     - **Client Credentials Grant:** Used for server-to-server communication between trusted partners/clients.
-    - **Authorization Code Grant:** Enables user interaction through an authorization server for broader use cases.
 - **Security:** Implement appropriate security measures to protect user data and resources.
 - **Data Model:** Utilize the provided data model definitions in the Swagger specification for request and response structures.
 - **Error Handling:** Implement robust error handling mechanisms to provide informative messages for various error scenarios.
