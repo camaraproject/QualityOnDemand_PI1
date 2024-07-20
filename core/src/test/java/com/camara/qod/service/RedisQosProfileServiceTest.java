@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.camara.qod.api.model.QosProfile;
 import com.camara.qod.api.model.QosProfileStatusEnum;
 import com.camara.qod.exception.QodApiException;
+import java.io.IOException;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -53,7 +54,7 @@ class RedisQosProfileServiceTest {
   private static RedisServer redisServer = null;
 
   @BeforeAll
-  public static void setUp() {
+  public static void setUp() throws IOException {
     redisServer = new RedisServer(6370);
     if (redisServer.isActive()) {
       redisServer.stop();
@@ -62,7 +63,7 @@ class RedisQosProfileServiceTest {
   }
 
   @AfterAll
-  public static void tearDown() {
+  public static void tearDown() throws IOException {
     redisServer.stop();
   }
 
