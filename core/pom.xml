@@ -112,9 +112,9 @@
       <version>${shedlock-spring.version}</version>
     </dependency>
     <dependency>
-      <groupId>it.ozimov</groupId>
-      <artifactId>embedded-redis</artifactId> <!-- Embedded Redis for Unit Tests-->
-      <version>0.7.3</version>
+      <groupId>com.github.codemonstur</groupId>
+      <artifactId>embedded-redis</artifactId>
+      <version>1.4.3</version>
       <scope>test</scope>
     </dependency>
     <dependency>

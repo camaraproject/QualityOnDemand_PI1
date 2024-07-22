@@ -79,6 +79,7 @@ import com.camara.qod.service.ExpiredSessionMonitor;
 import com.camara.qod.service.StorageService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import feign.FeignException;
+import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -150,7 +151,7 @@ class SessionsControllerIntegrationTest {
   static final int MAX_VALUE_SECONDS_PER_DAY = 86399;
 
   @BeforeAll
-  public static void setUp() {
+  public static void setUp() throws IOException {
     redisServer = new RedisServer(6370); // RedisServer.builder().port(6370).setting("maxheap 128M").build();
     if (redisServer.isActive()) {
       redisServer.stop();
@@ -159,7 +160,7 @@ class SessionsControllerIntegrationTest {
   }
 
   @AfterAll
-  public static void tearDown() {
+  public static void tearDown() throws IOException {
     redisServer.stop();
   }
 
