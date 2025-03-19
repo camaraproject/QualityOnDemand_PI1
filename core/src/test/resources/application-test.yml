@@ -2,8 +2,6 @@ network:
   server:
     apiroot: http://localhost:9000
     scsasid: scs
-    flowid:
-      qos-l: -1
   debug: true
 
 # QoD specific configuration
@@ -12,13 +10,3 @@ qod:
     time-before-handling: 20
     trigger-interval: 1
     lock-time: 2
-  availability:
-    enabled: true # if set to true, availability service is requested of requested size
-    url: http://localhost:9000
-
-# Redis
-spring:
-  data:
-    redis:
-      host: localhost
-      port: 6370
