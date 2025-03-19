@@ -1,31 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xmlns="http://maven.apache.org/POM/4.0.0"
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-
-  <artifactId>senf-api</artifactId>
-  <version>v0.10.1</version>
-
   <parent>
     <groupId>com.camara</groupId>
     <artifactId>qod</artifactId>
-    <version>v0.10.1</version>
+    <version>r1.3</version>
   </parent>
+  <modelVersion>4.0.0</modelVersion>
+  <artifactId>senf-api</artifactId>
+  <version>r1.3</version>
 
   <dependencies>
     <dependency>
-      <groupId>io.swagger.core.v3</groupId>
-      <artifactId>swagger-annotations</artifactId>
-      <version>${swagger-annotations-version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-core</artifactId>
+      <groupId>com.brsanthu</groupId>
+      <artifactId>migbase64</artifactId>
+      <version>${migbase64-version}</version>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-annotations</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-core</artifactId>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
@@ -36,48 +33,19 @@
       <artifactId>jackson-datatype-joda</artifactId>
     </dependency>
     <dependency>
-      <groupId>joda-time</groupId>
-      <artifactId>joda-time</artifactId>
-      <version>${jodatime-version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.brsanthu</groupId>
-      <artifactId>migbase64</artifactId>
-      <version>${migbase64-version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-test</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.springfox</groupId>
-      <artifactId>springfox-swagger-common</artifactId>
-      <version>${springfox-version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.springfox</groupId>
-      <artifactId>springfox-swagger2</artifactId>
-      <version>${springfox-version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.springfox</groupId>
-      <artifactId>springfox-swagger-ui</artifactId>
-      <version>${springfox-version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.threeten</groupId>
-      <artifactId>threetenbp</artifactId>
-      <version>${threetenbp-version}</version>
-    </dependency>
-    <dependency>
       <groupId>com.github.joschi.jackson</groupId>
       <artifactId>jackson-datatype-threetenbp</artifactId>
       <version>${datatype-threetenbp-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.swagger.core.v3</groupId>
+      <artifactId>swagger-annotations</artifactId>
+      <version>${swagger-annotations-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>joda-time</groupId>
+      <artifactId>joda-time</artifactId>
+      <version>${jodatime-version}</version>
     </dependency>
     <dependency>
       <groupId>org.openapitools</groupId>
@@ -86,29 +54,43 @@
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.threeten</groupId>
+      <artifactId>threetenbp</artifactId>
+      <version>${threetenbp-version}</version>
     </dependency>
   </dependencies>
 
   <build>
     <plugins>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${maven-plugin.version}</version>
+        <configuration>
+          <skipTests>true</skipTests>
+          <testFailureIgnore>true</testFailureIgnore>
+        </configuration>
+      </plugin>
+      <plugin>
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-maven-plugin</artifactId>
         <version>${code-generator.version}</version>
         <executions>
           <execution>
-            <id>client</id>
-            <goals>
-              <goal>generate</goal>
-            </goals>
             <configuration>
-              <inputSpec>${project.basedir}/src/main/resources/static/qod-api.yaml</inputSpec>
-              <generatorName>java</generatorName>
-              <library>resttemplate</library>
-              <apiPackage>com.camara.qod.api.notifications</apiPackage>
-              <invokerPackage>com.camara.qod.api.notifications</invokerPackage>
-              <modelPackage>com.camara.qod.api.model</modelPackage>
+              <apiPackage>com.camara.quality_on_demand.api.notifications</apiPackage>
               <configOptions>
                 <additionalModelTypeAnnotations>
                   @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
@@ -117,48 +99,76 @@
               </configOptions>
               <generateApiTests>false</generateApiTests>
               <generateModelTests>false</generateModelTests>
+              <generatorName>java</generatorName>
+              <inputSpec>${project.basedir}/src/main/resources/static/quality-on-demand.yaml</inputSpec>
+              <invokerPackage>com.camara.quality_on_demand.api.notifications</invokerPackage>
+              <library>resttemplate</library>
+              <modelPackage>com.camara.quality_on_demand.api.model</modelPackage>
             </configuration>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <id>client</id>
           </execution>
           <execution>
-            <id>server</id>
-            <goals>
-              <goal>generate</goal>
-            </goals>
             <configuration>
-              <inputSpec>${project.basedir}/src/main/resources/static/qod-api.yaml</inputSpec>
-              <generatorName>spring</generatorName>
-              <apiPackage>com.camara.qod.api</apiPackage>
-              <modelPackage>com.camara.qod.api.model</modelPackage>
-              <supportingFilesToGenerate>ApiUtil.java</supportingFilesToGenerate>
+              <apiPackage>com.camara.quality_on_demand.api</apiPackage>
               <configOptions>
                 <additionalModelTypeAnnotations>
                   @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
                 </additionalModelTypeAnnotations>
-                <useSpringBoot3>true</useSpringBoot3>
+                <containerDefaultToNull>true</containerDefaultToNull>
                 <delegatePattern>true</delegatePattern>
-                <useJakartaEe>true</useJakartaEe>
                 <openApiNullable>false</openApiNullable>
+                <useJakartaEe>true</useJakartaEe>
+                <useSpringBoot3>true</useSpringBoot3>
+                <useTags>true</useTags>
               </configOptions>
               <generateApiTests>false</generateApiTests>
               <generateModelTests>false</generateModelTests>
-              <globalProperties>
-                <apis>sessions,qos-profiles</apis>
-              </globalProperties>
+              <generatorName>spring</generatorName>
+              <inputSpec>${project.basedir}/src/main/resources/static/quality-on-demand.yaml</inputSpec>
+              <modelPackage>com.camara.quality_on_demand.api.model</modelPackage>
               <openapiNormalizer>
                 SIMPLIFY_ANYOF_STRING_AND_ENUM_STRING=true
               </openapiNormalizer>
+              <supportingFilesToGenerate>ApiUtil.java</supportingFilesToGenerate>
             </configuration>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <id>quality-on-demand</id>
+          </execution>
+          <execution>
+            <configuration>
+              <apiPackage>com.camara.qos_profiles.api</apiPackage>
+              <configOptions>
+                <additionalModelTypeAnnotations>
+                  @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+                </additionalModelTypeAnnotations>
+                <containerDefaultToNull>true</containerDefaultToNull>
+                <delegatePattern>true</delegatePattern>
+                <openApiNullable>false</openApiNullable>
+                <useJakartaEe>true</useJakartaEe>
+                <useSpringBoot3>true</useSpringBoot3>
+                <useTags>true</useTags>
+              </configOptions>
+              <generateApiTests>false</generateApiTests>
+              <generateModelTests>false</generateModelTests>
+              <generatorName>spring</generatorName>
+              <inputSpec>${project.basedir}/src/main/resources/static/qos-profiles.yaml</inputSpec>
+              <modelPackage>com.camara.qos_profiles.api.model</modelPackage>
+              <openapiNormalizer>
+                SIMPLIFY_ANYOF_STRING_AND_ENUM_STRING=true
+              </openapiNormalizer>
+              <supportingFilesToGenerate>ApiUtil.java</supportingFilesToGenerate>
+            </configuration>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <id>qos-profiles</id>
           </execution>
         </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <version>${maven-plugin.version}</version>
-        <configuration>
-          <testFailureIgnore>true</testFailureIgnore>
-          <skipTests>true</skipTests>
-        </configuration>
       </plugin>
     </plugins>
   </build>

@@ -5,12 +5,12 @@
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>3gpp</artifactId>
-  <version>v0.10.1</version>
+  <version>r1.3</version>
 
   <parent>
     <groupId>com.camara</groupId>
     <artifactId>qod</artifactId>
-    <version>v0.10.1</version>
+    <version>r1.3</version>
   </parent>
 
   <dependencies>
@@ -60,16 +60,6 @@
       <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.springfox</groupId>
-      <artifactId>springfox-swagger2</artifactId>
-      <version>${springfox-version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.springfox</groupId>
-      <artifactId>springfox-swagger-ui</artifactId>
-      <version>${springfox-version}</version>
-    </dependency>
-    <dependency>
       <groupId>org.threeten</groupId>
       <artifactId>threetenbp</artifactId>
       <version>${threetenbp-version}</version>
@@ -85,10 +75,10 @@
       <version>${jackson-databind-nullable}</version>
     </dependency>
     <dependency>
-      <groupId>javax.servlet</groupId>
-      <artifactId>servlet-api</artifactId>
-      <version>${servlet-api.version}</version>
-      <scope>provided</scope>
+      <groupId>jakarta.servlet</groupId>
+      <artifactId>jakarta.servlet-api</artifactId>
+      <version>${jakarta.servlet-api.version}</version>
+      <scope>runtime</scope>
     </dependency>
   </dependencies>
 
@@ -115,6 +105,7 @@
                 <additionalModelTypeAnnotations>
                   @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
                 </additionalModelTypeAnnotations>
+                <containerDefaultToNull>true</containerDefaultToNull>
                 <useJakartaEe>true</useJakartaEe>
                 <generateClientAsBean>true</generateClientAsBean>
               </configOptions>
@@ -137,6 +128,7 @@
               <modelPackage>com.camara.network.api.model</modelPackage>
               <supportingFilesToGenerate>ApiUtil.java</supportingFilesToGenerate>
               <configOptions>
+                <containerDefaultToNull>true</containerDefaultToNull>
                 <useSpringBoot3>true</useSpringBoot3>
                 <delegatePattern>true</delegatePattern>
                 <useJakartaEe>true</useJakartaEe>

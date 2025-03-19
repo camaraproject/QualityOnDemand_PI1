@@ -1,92 +1,84 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xmlns="http://maven.apache.org/POM/4.0.0"
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-
   <groupId>com.camara</groupId>
   <artifactId>qod</artifactId>
-  <version>v0.10.1</version>
-  <description>Service Enabling Function for Quality-of-Service</description>
-  <organization>
-    <name>Deutsche Telekom AG</name>
-  </organization>
-
+  <version>r1.3</version>
   <packaging>pom</packaging>
-
-  <properties>
-    <java.version>17</java.version>
-    <maven.compiler.source>17</maven.compiler.source>
-    <maven.compiler.target>17</maven.compiler.target>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <license.licenseName>apache_v2</license.licenseName>
-    <license.projectName>CAMARA Project</license.projectName>
-    <license.inceptionYear>2022</license.inceptionYear>
-    <license.git.copyrightLastYear>2024</license.git.copyrightLastYear>
-    <!--dependencies-->
-    <code-generator.version>7.4.0</code-generator.version>
-    <datatype-threetenbp-version>2.15.2</datatype-threetenbp-version>
-    <jackson-databind-nullable>0.2.6</jackson-databind-nullable>
-    <jodatime-version>2.12.7</jodatime-version>
-    <lombok.version>1.18.32</lombok.version>
-    <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
-    <maven-plugin.version>3.2.5</maven-plugin.version>
-    <migbase64-version>2.2</migbase64-version>
-    <org.mapstruct.version>1.6.0.Beta1</org.mapstruct.version>
-    <plugin.checkstyle.version>3.3.1</plugin.checkstyle.version>
-    <plugin.jacoco.version>0.8.12</plugin.jacoco.version>
-    <shedlock-spring.version>5.13.0</shedlock-spring.version>
-    <spotbugs.version>4.8.4.0</spotbugs.version>
-    <spring.boot.version>3.2.5</spring.boot.version>
-    <spring.cloud.version>2023.0.1</spring.cloud.version>
-    <springdoc.version>2.5.0</springdoc.version>
-    <jakarta-version>3.1.0-M2</jakarta-version>
-    <springfox-version>3.0.0</springfox-version>
-    <swagger-annotations-version>2.2.21</swagger-annotations-version>
-    <threetenbp-version>1.6.9</threetenbp-version>
-    <checkstyle.version>10.15.0</checkstyle.version>
-    <java-jwt.version>4.4.0</java-jwt.version>
-    <javax.servlet-api.version>4.0.1</javax.servlet-api.version>
-    <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
-    <gitlab-code-quality-plugin.version>1.1.0</gitlab-code-quality-plugin.version>
-    <guava.version>33.1.0-jre</guava.version>
-    <awaitility.version>4.2.1</awaitility.version>
-    <ipaddress.version>5.5.0</ipaddress.version>
-    <servlet-api.version>2.5</servlet-api.version>
-    <h2.version>2.2.224</h2.version>
-    <cloud-event.version>3.0.0</cloud-event.version>
-    <license-maven-plugin.version>2.4.0</license-maven-plugin.version>
-  </properties>
+  <description>Service Enabling Function for Quality-of-Service</description>
 
   <modules>
+    <module>3gpp</module>
     <module>api</module>
     <module>core</module>
-    <module>3gpp</module>
     <module>coverage</module>
   </modules>
 
+  <properties>
+    <java.version>21</java.version>
+    <maven.compiler.source>21</maven.compiler.source>
+    <maven.compiler.target>21</maven.compiler.target>
+    <awaitility.version>4.2.2</awaitility.version>
+    <checkstyle.version>10.20.2</checkstyle.version>
+    <cloud-event.version>4.0.1</cloud-event.version>
+    <!--dependencies-->
+    <code-generator.version>7.10.0</code-generator.version>
+    <commons-validator.version>1.9.0</commons-validator.version>
+    <datatype-threetenbp-version>2.15.2</datatype-threetenbp-version>
+    <gitlab-code-quality-plugin.version>1.1.0</gitlab-code-quality-plugin.version>
+    <guava.version>33.2.1-jre</guava.version>
+    <ipaddress.version>5.5.0</ipaddress.version>
+    <jackson-databind-nullable>0.2.6</jackson-databind-nullable>
+    <jakarta-version>3.1.0</jakarta-version>
+    <jakarta.servlet-api.version>6.1.0</jakarta.servlet-api.version>
+    <java-jwt.version>4.4.0</java-jwt.version>
+    <jodatime-version>2.12.7</jodatime-version>
+    <license-maven-plugin.version>2.5.0</license-maven-plugin.version>
+    <license.git.copyrightLastYear>2025</license.git.copyrightLastYear>
+    <license.inceptionYear>2022</license.inceptionYear>
+    <license.licenseName>apache_v2</license.licenseName>
+    <license.projectName>CAMARA Project</license.projectName>
+    <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
+    <lombok.version>1.18.36</lombok.version>
+    <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+    <maven-plugin.version>3.5.2</maven-plugin.version>
+    <migbase64-version>2.2</migbase64-version>
+    <org.mapstruct.version>1.6.3</org.mapstruct.version>
+    <plugin.checkstyle.version>3.3.1</plugin.checkstyle.version>
+    <plugin.jacoco.version>0.8.12</plugin.jacoco.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <shedlock-spring.version>5.16.0</shedlock-spring.version>
+    <spotbugs.version>4.8.6.6</spotbugs.version>
+    <spring.boot.version>3.4.2</spring.boot.version>
+    <spring.cloud.version>2024.0.0</spring.cloud.version>
+    <springdoc.version>2.8.1</springdoc.version>
+    <swagger-annotations-version>2.2.27</swagger-annotations-version>
+    <threetenbp-version>1.6.9</threetenbp-version>
+  </properties>
+
   <dependencyManagement>
     <dependencies>
-      <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-dependencies</artifactId>
-        <version>${spring.boot.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.springframework.cloud</groupId>
-        <artifactId>spring-cloud-dependencies</artifactId>
-        <version>${spring.cloud.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
       <dependency>
         <groupId>org.projectlombok</groupId>
         <artifactId>lombok</artifactId>
         <version>${lombok.version}</version>
         <scope>provided</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-dependencies</artifactId>
+        <version>${spring.boot.version}</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
+      <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-dependencies</artifactId>
+        <version>${spring.cloud.version}</version>
+        <scope>import</scope>
+        <type>pom</type>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -94,40 +86,10 @@
   <build>
     <plugins>
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>license-maven-plugin</artifactId>
-        <version>${license-maven-plugin.version}</version>
-        <configuration>
-          <outputDirectory>.</outputDirectory>
-          <thirdPartyFilename>THIRD-PARTY.md</thirdPartyFilename>
-          <fileTemplate>templates/third-party.ftl</fileTemplate>
-          <excludedGroups>camara</excludedGroups>
-          <addJavaLicenseAfterPackage>false</addJavaLicenseAfterPackage>
-          <emptyLineAfterHeader>true</emptyLineAfterHeader>
-          <includes>**/*.java</includes>
-          <roots>src</roots>
-          <trimHeaderLine>true</trimHeaderLine>
-          <sectionDelimiter>---</sectionDelimiter>
-          <copyrightOwners>Contributors | ${project.organization.name} to CAMARA a Series of LF Projects, LLC
-            &#x0A;The contributor of this file confirms his sign-off for the Developer Certificate of Origin
-            (https://developercertificate.org).
-          </copyrightOwners>
-          <processStartTag>---license-start</processStartTag>
-          <processEndTag>---license-end</processEndTag>
-          <failOnMissingHeader>true</failOnMissingHeader>
-          <failOnNotUptodateHeader>true</failOnNotUptodateHeader>
-        </configuration>
-      </plugin>
-      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>${maven-compiler-plugin.version}</version>
         <configuration>
-          <compilerArgs>
-            <arg>-parameters</arg>
-          </compilerArgs>
-          <source>17</source>
-          <target>17</target>
           <annotationProcessorPaths>
             <path>
               <groupId>org.mapstruct</groupId>
@@ -137,7 +99,7 @@
             <path>
               <groupId>org.projectlombok</groupId>
               <artifactId>lombok</artifactId>
-              <version>RELEASE</version>
+              <version>${lombok.version}</version>
             </path>
             <path>
               <groupId>org.projectlombok</groupId>
@@ -145,55 +107,51 @@
               <version>${lombok-mapstruct-binding.version}</version>
             </path>
           </annotationProcessorPaths>
+          <compilerArgs>
+            <arg>-parameters</arg>
+          </compilerArgs>
+          <source>${maven.compiler.source}</source>
+          <source>${maven.compiler.target}</source>
         </configuration>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>${plugin.checkstyle.version}</version>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>license-maven-plugin</artifactId>
+        <version>${license-maven-plugin.version}</version>
         <configuration>
-          <configLocation>checkstyle.xml</configLocation>
-          <excludes>target/**/*</excludes>
-          <consoleOutput>true</consoleOutput>
-          <failsOnError>false</failsOnError>
-          <failOnViolation>false</failOnViolation>
-          <violationSeverity>warning</violationSeverity>
-          <linkXRef>false</linkXRef>
-          <sourceDirectories>
-            <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
-            <sourceDirectory>${project.build.testSourceDirectory}</sourceDirectory>
-          </sourceDirectories>
+          <acceptPomPackaging>true</acceptPomPackaging>
+          <addJavaLicenseAfterPackage>false</addJavaLicenseAfterPackage>
+          <copyrightOwners>Contributors | ${project.organization.name} to CAMARA a Series of LF Projects, LLC
+            &#x0A;The contributor of this file confirms his sign-off for the Developer Certificate of Origin
+            (https://developercertificate.org).
+          </copyrightOwners>
+          <emptyLineAfterHeader>true</emptyLineAfterHeader>
+          <excludedGroups>camara</excludedGroups>
+          <failOnMissingHeader>true</failOnMissingHeader>
+          <fileTemplate>templates/third-party.ftl</fileTemplate>
+          <includes>**/*.java</includes>
+          <outputDirectory>.</outputDirectory>
+          <overrideFile>THIRD-PARTY.md</overrideFile>
+          <processEndTag>---license-end</processEndTag>
+          <processStartTag>---license-start</processStartTag>
+          <roots>src</roots>
+          <sectionDelimiter>---</sectionDelimiter>
+          <thirdPartyFilename>THIRD-PARTY.md</thirdPartyFilename>
+          <trimHeaderLine>true</trimHeaderLine>
         </configuration>
-        <dependencies>
-          <dependency>
-            <groupId>com.puppycrawl.tools</groupId>
-            <artifactId>checkstyle</artifactId>
-            <version>${checkstyle.version}</version>
-          </dependency>
-        </dependencies>
         <executions>
           <execution>
-            <id>check</id>
-            <phase>package</phase>
+            <id>update-license-headers</id>
             <goals>
-              <goal>check</goal>
+              <goal>update-file-header</goal>
             </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>de.chkal.maven</groupId>
-        <artifactId>gitlab-code-quality-plugin</artifactId>
-        <version>${gitlab-code-quality-plugin.version}</version>
-        <executions>
-          <execution>
             <phase>package</phase>
-            <goals>
-              <goal>generate</goal>
-            </goals>
           </execution>
         </executions>
       </plugin>
     </plugins>
   </build>
+  <organization>
+    <name>Deutsche Telekom AG</name>
+  </organization>
 </project>
