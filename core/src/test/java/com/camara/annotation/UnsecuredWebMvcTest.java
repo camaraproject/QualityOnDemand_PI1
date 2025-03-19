@@ -53,7 +53,7 @@ import org.springframework.security.config.annotation.web.WebSecurityConfigurer;
 public @interface UnsecuredWebMvcTest {
 
   /**
-   * Alias for the {@code controllers} attribute of {@link org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest}. Specifies
+   * Alias for the {@code controllers} attribute of {@link WebMvcTest}. Specifies
    * the controller classes to be registered for the test slice.
    *
    * @return the controller classes to be registered for the test slice
@@ -61,7 +61,7 @@ public @interface UnsecuredWebMvcTest {
   @AliasFor(annotation = WebMvcTest.class, attribute = "controllers") Class<?>[] value() default {};
 
   /**
-   * Alias for the {@code controllers} attribute of {@link org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest}. Specifies
+   * Alias for the {@code controllers} attribute of {@link WebMvcTest}. Specifies
    * the controller classes to be registered for the test slice.
    *
    * @return the controller classes to be registered for the test slice
