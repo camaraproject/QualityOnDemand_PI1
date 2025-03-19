@@ -28,13 +28,16 @@ network:
   debug: false
 
 app:
-  keycloak:
+  proxy:
     enabled: false
-    url: http://localhost:8000
-    realm: local
-    client:
-      id: local
-      secret: local
+    host: proxy.example.org
+    port: 8080
+  store:
+    host: localhost
+    name: mongodb
+    password: mongodb
+    port: 27017
+    username: mongodb
 
 # QoD specific configuration
 qod:
@@ -43,9 +46,11 @@ qod:
     horizon: false
   cloud-event:
     source:
-      url: http://localhost:9091/qod/v0/sessions
+      url: http://localhost:9091/quality-on-demand/v0.11/sessions
   deletion:
     delay: 360
+  profiles:
+    data: /initial_data.json
   qos:
     references:
       qos-e: qod_1
@@ -56,16 +61,14 @@ qod:
     time-before-handling: 20
     trigger-interval: 10
     lock-time: 2
+    default: 86400 #default expiration, when session is created and not yet available
   notifications:
     ip-filter:
       enabled: ${IP_FILTER_ENABLED:false}
       allowed-ipv4-addresses: ${ALLOWED_IPV4_ADDRESSES:127.0.0.1}
   mask-sensible-data: true # if set to true, sensible data is masked in response body
   allow-multiple-deviceaddr: true # if set to true, network segments are allowed for ueAddr
-  availability:
-    enabled: false
-    url: http://localhost:8091
-  service-id: qod
+  allow-anonymous-clients: false
 # Logging
 logging:
   file:
@@ -80,37 +83,38 @@ management:
     health:
       probes:
         enabled: true
-      enabled: true
+      access: unrestricted
 
 spring:
   data:
-    redis:
-      host: localhost
-      port: 6379
+    mongodb:
+      auto-index-creation: true
+      uri: mongodb://${app.store.username}:${app.store.password}@${app.store.host}:${app.store.port}/${app.store.name}?authSource=admin&retryWrites=false&serverSelectionTimeoutMS=300000
+
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher
   security:
     oauth2:
-      client:
-        registration:
-          iris:
-            client-id: ${IRIS_CLIENT_ID:local}
-            client-secret: ${IRIS_CLIENT_SECRET:local}
-            authorization-grant-type: client_credentials
-        provider:
-          iris:
-            token-uri: ${IRIS_TOKEN_URL:http://localhost:8000/auth/realms/local/protocol/openid-connect/token}
+      resourceserver:
+        jwt:
+          issuer-uri: ${TOKEN_ISSUER:http://localhost:8000/auth/realms/default}
   kafka:
     producer:
       bootstrap-servers: localhost:29092
 kafka:
   topic:
     webhook: callback
+
 springdoc:
   swagger-ui:
     path: /swagger
-    url: /qod-api.yaml
+    urls:
+      - name: "Quality-On-Demand API"
+        url: /quality-on-demand.yaml
+      - name: "QoS Profiles API"
+        url: /qos-profiles.yaml
 
 enhanced-token-validation:
   enabled: false
+  endpoints: "/sessions,/qos-profiles,/extend"
