@@ -5,12 +5,12 @@
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>senf-core</artifactId>
-  <version>v0.10.1</version>
+  <version>r1.3</version>
   <packaging>jar</packaging>
   <parent>
     <groupId>com.camara</groupId>
     <artifactId>qod</artifactId>
-    <version>v0.10.1</version>
+    <version>r1.3</version>
   </parent>
 
   <dependencies>
@@ -18,151 +18,161 @@
     <dependency>
       <groupId>com.camara</groupId>
       <artifactId>senf-api</artifactId>
-      <version>v0.10.1</version>
+      <version>r1.3</version>
     </dependency>
 
     <dependency>
       <groupId>com.camara</groupId>
       <artifactId>3gpp</artifactId>
-      <version>v0.10.1</version>
+      <version>r1.3</version>
     </dependency>
 
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
+
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
+
     <dependency>
       <groupId>org.springframework.cloud</groupId>
       <artifactId>spring-cloud-starter-openfeign</artifactId>
     </dependency>
+
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
     </dependency>
+
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
     </dependency>
+
     <dependency>
       <groupId>org.mapstruct</groupId>
       <artifactId>mapstruct</artifactId>
       <version>${org.mapstruct.version}</version>
     </dependency>
+
     <dependency>
       <groupId>org.springdoc</groupId>
       <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
       <version>${springdoc.version}</version>
     </dependency>
 
-    <!-- databases -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-data-redis</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-data-jpa</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.h2database</groupId>
-      <artifactId>h2</artifactId>
-      <scope>runtime</scope>
-      <version>${h2.version}</version>
-    </dependency>
     <dependency>
       <groupId>io.cloudevents</groupId>
       <artifactId>cloudevents-spring</artifactId>
       <version>${cloud-event.version}</version>
     </dependency>
+
     <dependency>
       <groupId>io.cloudevents</groupId>
       <artifactId>cloudevents-json-jackson</artifactId>
       <version>${cloud-event.version}</version>
     </dependency>
+
     <dependency>
       <groupId>io.cloudevents</groupId>
       <artifactId>cloudevents-http-basic</artifactId>
       <version>${cloud-event.version}</version>
     </dependency>
+
     <dependency>
       <groupId>io.cloudevents</groupId>
       <artifactId>cloudevents-kafka</artifactId>
       <version>${cloud-event.version}</version>
     </dependency>
+
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>2.18.0</version>
+    </dependency>
+
     <dependency>
       <groupId>net.javacrumbs.shedlock</groupId>
-      <artifactId>shedlock-provider-jdbc-template</artifactId>
+      <artifactId>shedlock-provider-mongo</artifactId>
       <version>${shedlock-spring.version}</version>
     </dependency>
 
-    <!-- dependencies -->
     <dependency>
       <groupId>net.javacrumbs.shedlock</groupId>
       <artifactId>shedlock-spring</artifactId>
       <version>${shedlock-spring.version}</version>
     </dependency>
-    <dependency>
-      <groupId>net.javacrumbs.shedlock</groupId>
-      <artifactId>shedlock-provider-redis-spring</artifactId>
-      <version>${shedlock-spring.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.github.codemonstur</groupId>
-      <artifactId>embedded-redis</artifactId>
-      <version>1.4.3</version>
-      <scope>test</scope>
-    </dependency>
+
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
       <version>${guava.version}</version>
     </dependency>
+
     <dependency>
       <groupId>org.awaitility</groupId>
       <artifactId>awaitility</artifactId>
       <version>${awaitility.version}</version>
       <scope>test</scope>
     </dependency>
+
     <dependency>
       <groupId>com.github.seancfoley</groupId>
       <artifactId>ipaddress</artifactId>
       <version>${ipaddress.version}</version>
     </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-mongodb</artifactId>
+    </dependency>
+
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-security</artifactId>
     </dependency>
+
     <dependency>
       <groupId>org.springframework.security</groupId>
       <artifactId>spring-security-oauth2-resource-server</artifactId>
     </dependency>
+
     <dependency>
       <groupId>org.springframework.security</groupId>
       <artifactId>spring-security-oauth2-jose</artifactId>
     </dependency>
+
     <dependency>
       <groupId>org.springframework.security</groupId>
       <artifactId>spring-security-oauth2-client</artifactId>
     </dependency>
+
     <dependency>
       <groupId>com.auth0</groupId>
       <artifactId>java-jwt</artifactId>
       <version>${java-jwt.version}</version>
     </dependency>
+
     <dependency>
-      <groupId>javax.servlet</groupId>
-      <artifactId>javax.servlet-api</artifactId>
-      <version>${javax.servlet-api.version}</version>
+      <groupId>jakarta.servlet</groupId>
+      <artifactId>jakarta.servlet-api</artifactId>
+      <version>${jakarta.servlet-api.version}</version>
       <scope>runtime</scope>
     </dependency>
+
     <dependency>
       <groupId>org.springframework.kafka</groupId>
       <artifactId>spring-kafka</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>commons-validator</groupId>
+      <artifactId>commons-validator</artifactId>
+      <version>${commons-validator.version}</version>
     </dependency>
   </dependencies>
 
@@ -177,6 +187,8 @@
             @{surefireArgLine}
             --add-opens=java.base/java.net=ALL-UNNAMED
             --add-opens java.base/java.util=ALL-UNNAMED
+            --add-opens=java.base/java.time=ALL-UNNAMED
+            --add-opens=java.base/java.time.zone=ALL-UNNAMED
           </argLine>
         </configuration>
       </plugin>
@@ -218,6 +230,40 @@
         </executions>
       </plugin>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>${plugin.checkstyle.version}</version>
+        <dependencies>
+          <dependency>
+            <groupId>com.puppycrawl.tools</groupId>
+            <artifactId>checkstyle</artifactId>
+            <version>${checkstyle.version}</version>
+          </dependency>
+        </dependencies>
+        <configuration>
+          <configLocation>checkstyle.xml</configLocation>
+          <consoleOutput>true</consoleOutput>
+          <excludes>target/**/*</excludes>
+          <failOnViolation>false</failOnViolation>
+          <failsOnError>false</failsOnError>
+          <linkXRef>false</linkXRef>
+          <sourceDirectories>
+            <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
+            <sourceDirectory>${project.build.testSourceDirectory}</sourceDirectory>
+          </sourceDirectories>
+          <violationSeverity>warning</violationSeverity>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <id>check</id>
+            <phase>package</phase>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
         <version>${plugin.jacoco.version}</version>
@@ -237,6 +283,19 @@
             <goals>
               <goal>report</goal>
             </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>de.chkal.maven</groupId>
+        <artifactId>gitlab-code-quality-plugin</artifactId>
+        <version>${gitlab-code-quality-plugin.version}</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <phase>package</phase>
           </execution>
         </executions>
       </plugin>
