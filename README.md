@@ -12,7 +12,7 @@ This service uses API first approach. It uses OpenAPI Generator to generate serv
 
 ### Implemented Version
 
-r1.2
+r1.3
 
 ### API Functionality
 
